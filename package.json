@@ -11,6 +11,13 @@
   "author": "BlockRocket.tech",
   "license": "MIT",
   "devDependencies": {
-    "@openzeppelin/contracts": "^2.3.0"
+    "@openzeppelin/contracts": "^2.3.0",
+    "chai": "^4.2.0",
+    "openzeppelin-test-helpers": "^0.4.3",
+    "truffle-flattener": "^1.4.2"
+  },
+  "dependencies": {
+    "@truffle/hdwallet-provider": "^1.0.18",
+    "truffle": "^5.0.36"
   }
 }
