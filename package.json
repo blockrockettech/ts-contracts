@@ -1,0 +1,16 @@
+{
+  "name": "ts-contracts",
+  "version": "1.0.0",
+  "description": "TwistedSister Solidity Contracts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "truffle test"
+  },
+  "author": "BlockRocket.tech",
+  "license": "MIT",
+  "devDependencies": {
+    "@openzeppelin/contracts": "^2.3.0"
+  }
+}
