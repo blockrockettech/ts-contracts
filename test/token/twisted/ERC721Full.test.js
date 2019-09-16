@@ -98,19 +98,18 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
                 const {
                     _round,
                     _parameter,
-                    _ipfsHash
+                    _ipfsUrl
                 } = await this.token.attributes(secondTokenId);
 
                 _round.should.be.bignumber.equal(new BN('1'));
                 _parameter.should.be.bignumber.equal(new BN('2'));
-                _ipfsHash.should.be.equal(randIPFSHash);
+                _ipfsUrl.should.be.equal(expectedUri);
             });
 
             it('returns a token uri using updated base uri', async function () {
                 const newBaseUri = 'super.ipfs/';
                 const newExpectedUri = `${newBaseUri}${randIPFSHash}`;
                 (await this.token.updateTokenBaseURI(newBaseUri, {from: creator}));
-                (await this.token.refreshTokenURI(firstTokenId, {from: creator}));
                 (await this.token.tokenURI(firstTokenId)).should.be.equal(newExpectedUri);
             });
 
@@ -153,17 +152,6 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('reverts when updating the IPFS hash of a token that doesn\'t exist', async function () {
                 await expectRevert(
                     this.token.updateIpfsHash(nonExistentTokenId, ''),
-                    tokenNotFoundRevertReason
-                );
-            });
-
-            it('reverts when refreshing token URI from an unauthorised address', async function () {
-                await expectRevert.unspecified(this.token.refreshTokenURI(secondTokenId, {from: another}));
-            });
-            
-            it('reverts when refreshing token URI for a non-existent token', async function () {
-                await expectRevert(
-                    this.token.refreshTokenURI(nonExistentTokenId),
                     tokenNotFoundRevertReason
                 );
             });

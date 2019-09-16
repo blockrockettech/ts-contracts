@@ -2,12 +2,12 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721Full.sol";
+import "./ERC721/CustomERC721Full.sol";
 
 import "./libs/Strings.sol";
 import "./interfaces/ITwistedTokenCreator.sol";
 
-contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
+contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator {
     using SafeMath for uint256;
 
     string public tokenBaseURI = "";
@@ -33,7 +33,7 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
         _;
     }
 
-    constructor (string memory _tokenBaseURI, address _auction) public ERC721Full("Twisted", "TWIST") {
+    constructor (string memory _tokenBaseURI, address _auction) public CustomERC721Full("Twisted", "TWIST") {
         super.addWhitelisted(msg.sender);
         super.addWhitelisted(_auction);
         tokenBaseURI = _tokenBaseURI;
@@ -57,7 +57,6 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
         });
 
         _mint(_recipient, tokenId);
-        _setTokenURI(tokenId, Strings.strConcat(tokenBaseURI, _ipfsHash));
 
         emit TwistMinted(_recipient, tokenId);
 
@@ -67,14 +66,23 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
     function attributes(uint256 _tokenId) external onlyWhenTokenExists(_tokenId) view returns (
         uint256 _round,
         uint256 _parameter,
-        string memory _ipfsHash
+        string memory _ipfsUrl
     ) {
         Twist storage twist = twists[_tokenId];
         return (
             twist.round,
             twist.parameter,
-            twist.ipfsHash
+            Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash)
         );
+    }
+
+    /**
+     * @dev Returns an URI for a given token ID.
+     * Throws if the token ID does not exist. May return an empty string.
+     * @param _tokenId uint256 ID of the token to query
+     */
+    function tokenURI(uint256 _tokenId) external onlyWhenTokenExists(_tokenId) view returns (string memory) {
+        return Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash);
     }
 
     function tokensOfOwner(address owner) external view returns (uint256[] memory) {
@@ -89,11 +97,6 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
     function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external onlyWhitelisted onlyWhenTokenExists(_tokenId) {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
         twists[_tokenId].ipfsHash = _newIpfsHash;
-        _setTokenURI(_tokenId, Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash));
-    }
-
-    function refreshTokenURI(uint256 _tokenId) external onlyWhitelisted onlyWhenTokenExists(_tokenId) {
-        _setTokenURI(_tokenId, Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash));
     }
 
     function updateAuctionWhitelist(address _to) external onlyWhitelisted {
