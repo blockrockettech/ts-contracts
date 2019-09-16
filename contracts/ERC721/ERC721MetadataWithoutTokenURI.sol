@@ -46,15 +46,4 @@ contract ERC721MetadataWithoutTokenURI is ERC165, ERC721, IERC721Metadata {
     function symbol() external view returns (string memory) {
         return _symbol;
     }
-
-    /**
-     * @dev Internal function to burn a specific token.
-     * Reverts if the token does not exist.
-     * Deprecated, use _burn(uint256) instead.
-     * @param owner owner of the token to burn
-     * @param tokenId uint256 ID of the token being burned by the msg.sender
-     */
-    function _burn(address owner, uint256 tokenId) internal {
-        super._burn(owner, tokenId);
-    }
 }
