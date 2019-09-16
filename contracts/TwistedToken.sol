@@ -20,12 +20,18 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
     struct Twist {
         uint256 round;
         uint256 parameter;
+        string ipfsHash;
     }
 
     uint256 public tokenIdPointer = 0;
 
     address public auction;
     mapping(uint256 => Twist) internal twists;
+
+    modifier onlyWhenTokenExists(uint256 _tokenId) {
+        require(_exists(_tokenId), "Token not found for ID");
+        _;
+    }
 
     constructor (string memory _tokenBaseURI, address _auction) public ERC721Full("Twisted", "TWIST") {
         super.addWhitelisted(msg.sender);
@@ -46,7 +52,8 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
         // Create Twist metadata
         twists[tokenId] = Twist({
             round: _round,
-            parameter: _parameter
+            parameter: _parameter,
+            ipfsHash: _ipfsHash
         });
 
         _mint(_recipient, tokenId);
@@ -57,15 +64,16 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
         return tokenId;
     }
 
-    function attributes(uint256 _tokenId) external view returns (
+    function attributes(uint256 _tokenId) external onlyWhenTokenExists(_tokenId) view returns (
         uint256 _round,
-        uint256 _parameter
+        uint256 _parameter,
+        string memory _ipfsHash
     ) {
-        require(_exists(_tokenId), "Token not found for ID");
         Twist storage twist = twists[_tokenId];
         return (
             twist.round,
-            twist.parameter
+            twist.parameter,
+            twist.ipfsHash
         );
     }
 
@@ -78,9 +86,14 @@ contract TwistedToken is ERC721Full, WhitelistedRole, ITwistedTokenCreator {
         tokenBaseURI = _newBaseURI;
     }
 
-    function updateIpfsUrlWithHash(uint256 _tokenId, string calldata _newIpfsHash) external onlyWhitelisted {
+    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external onlyWhitelisted onlyWhenTokenExists(_tokenId) {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
-        _setTokenURI(_tokenId, Strings.strConcat(tokenBaseURI, _newIpfsHash));
+        twists[_tokenId].ipfsHash = _newIpfsHash;
+        _setTokenURI(_tokenId, Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash));
+    }
+
+    function refreshTokenURI(uint256 _tokenId) external onlyWhitelisted onlyWhenTokenExists(_tokenId) {
+        _setTokenURI(_tokenId, Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash));
     }
 
     function updateAuctionWhitelist(address _to) external onlyWhitelisted {

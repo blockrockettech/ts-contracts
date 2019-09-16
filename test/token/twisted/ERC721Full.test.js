@@ -11,6 +11,7 @@ const TwistedToken = artifacts.require('TwistedToken');
 contract('ERC721 Full Test Suite for TwistedToken', function ([
                                      creator,
                                      auction,
+                                     anotherAuction,
                                      ...accounts
                                  ]) {
     const name = 'Twisted';
@@ -22,6 +23,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
 
     const baseURI = "ipfs/";
     const randIPFSHash = "QmRLHatjFTvm3i4ZtZU8KTGsBTsj3bLHLcL8FbdkNobUzm";
+    const tokenNotFoundRevertReason = 'Token not found for ID';
 
     const minter = auction;
 
@@ -35,12 +37,13 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         this.token = await TwistedToken.new(baseURI, auction, { from: creator });
         (await this.token.isWhitelisted(creator)).should.be.true;
         (await this.token.isWhitelisted(auction)).should.be.true;
+        (await this.token.auction()).should.be.equal(auction);
     });
 
     describe('like a full ERC721', function () {
         beforeEach(async function () {
-            await this.token.createTwisted(0, 0, randIPFSHash, owner, { from: minter });
-            await this.token.createTwisted(0, 0, randIPFSHash, owner, { from: minter });
+            await this.token.createTwisted(0, 1, randIPFSHash, owner, { from: minter });
+            await this.token.createTwisted(1, 2, randIPFSHash, owner, { from: minter });
         });
 
         describe('mint', function () {
@@ -50,11 +53,20 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
 
             context('with minted token', async function () {
                 beforeEach(async function () {
-                    ({ logs: this.logs } = await this.token.createTwisted(0, 0, randIPFSHash, newOwner, { from: minter }));
+                    ({ logs: this.logs } = await this.token.createTwisted(2, 3, randIPFSHash, newOwner, { from: minter }));
                 });
 
-                it('emits a Transfer event', function () {
-                    expectEvent.inLogs(this.logs, 'Transfer', { from: ZERO_ADDRESS, to: newOwner, tokenId: new BN('3') });
+                it('emits a Transfer and TwistMinted event', function () {
+                    expectEvent.inLogs(this.logs, 'Transfer', {
+                        from: ZERO_ADDRESS,
+                        to: newOwner,
+                        tokenId: thirdTokenId
+                    });
+
+                    expectEvent.inLogs(this.logs, 'TwistMinted', {
+                        _recipient: newOwner,
+                        _tokenId: thirdTokenId
+                    });
                 });
 
                 it('adjusts owner tokens by index', async function () {
@@ -68,7 +80,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         });
 
         describe('metadata', function () {
-            const sampleUri = `${baseURI}${randIPFSHash}`;
+            const expectedUri = `${baseURI}${randIPFSHash}`;
 
             it('has a name', async function () {
                 (await this.token.name()).should.be.equal(name);
@@ -79,14 +91,82 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             });
 
             it('returns token uri', async function () {
-                (await this.token.tokenURI(firstTokenId)).should.be.equal(sampleUri);
+                (await this.token.tokenURI(firstTokenId)).should.be.equal(expectedUri);
             });
 
-            //todo: test attributes method
+            it('returns the TwistedToken\'s attributes', async function () {
+                const {
+                    _round,
+                    _parameter,
+                    _ipfsHash
+                } = await this.token.attributes(secondTokenId);
 
-            /*it('returns empty metadata for token', async function () {
-                (await this.token.tokenURI(firstTokenId)).should.be.equal('');
-            });*/
+                _round.should.be.bignumber.equal(new BN('1'));
+                _parameter.should.be.bignumber.equal(new BN('2'));
+                _ipfsHash.should.be.equal(randIPFSHash);
+            });
+
+            it('returns a token uri using updated base uri', async function () {
+                const newBaseUri = 'super.ipfs/';
+                const newExpectedUri = `${newBaseUri}${randIPFSHash}`;
+                (await this.token.updateTokenBaseURI(newBaseUri, {from: creator}));
+                (await this.token.refreshTokenURI(firstTokenId, {from: creator}));
+                (await this.token.tokenURI(firstTokenId)).should.be.equal(newExpectedUri);
+            });
+
+            it('returns a token uri using updated ipfs hash', async function () {
+                const newIpfsHash = 'QmRLHatjFTvm3i4ZtZU8KTGsBTsj3bLHLcL8FbdkNobUzb';
+                const newExpectedUri = `${baseURI}${newIpfsHash}`;
+                (await this.token.updateIpfsHash(secondTokenId, newIpfsHash));
+                (await this.token.tokenURI(secondTokenId)).should.be.equal(newExpectedUri);
+            });
+
+            it('reverts when fetching atrributes of a non-existent token', async function () {
+                await expectRevert(
+                    this.token.attributes(nonExistentTokenId),
+                    tokenNotFoundRevertReason
+                );
+            });
+
+            it('reverts when trying to update the base token URI from an unauthorised address', async function() {
+                await expectRevert.unspecified(this.token.updateTokenBaseURI('', { from: another}));
+            });
+
+            it('reverts when updating base uri to a blank string', async function () {
+                await expectRevert(
+                    this.token.updateTokenBaseURI(''),
+                    'Base URI invalid'
+                );
+            });
+
+            it('reverts when trying to update the IPFS hash of a token from an unauthorised address', async function() {
+                await expectRevert.unspecified(this.token.updateIpfsHash(firstTokenId, '', { from: another}));
+            });
+
+            it('reverts when updating the IPFS hash of a token to a blank string', async function () {
+                await expectRevert(
+                    this.token.updateIpfsHash(firstTokenId, ''),
+                    'New IPFS hash invalid'
+                );
+            });
+
+            it('reverts when updating the IPFS hash of a token that doesn\'t exist', async function () {
+                await expectRevert(
+                    this.token.updateIpfsHash(nonExistentTokenId, ''),
+                    tokenNotFoundRevertReason
+                );
+            });
+
+            it('reverts when refreshing token URI from an unauthorised address', async function () {
+                await expectRevert.unspecified(this.token.refreshTokenURI(secondTokenId, {from: another}));
+            });
+            
+            it('reverts when refreshing token URI for a non-existent token', async function () {
+                await expectRevert(
+                    this.token.refreshTokenURI(nonExistentTokenId),
+                    tokenNotFoundRevertReason
+                );
+            });
 
             it('reverts when querying metadata for non existent token id', async function () {
                 await expectRevert.unspecified(this.token.tokenURI(nonExistentTokenId));
@@ -159,6 +239,26 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('should revert if index is greater than supply', async function () {
                 await expectRevert.unspecified(this.token.tokenByIndex(2));
             });
+        });
+
+        describe('updateAuctionWhitelist', function () {
+           it('should update the whitelisted auction contract\'s address', async function () {
+               (await this.token.updateAuctionWhitelist(anotherAuction, {from: creator}));
+               (await this.token.isWhitelisted(auction)).should.be.false;
+               (await this.token.isWhitelisted(anotherAuction)).should.be.true;
+               (await this.token.auction()).should.be.equal(anotherAuction);
+           });
+
+           it('reverts when the current auction contract attempts to whitelist', async function () {
+               await expectRevert(
+                   this.token.updateAuctionWhitelist(anotherAuction, {from: auction}),
+                   'Only whitelisted owners can update the auction\'s whitelisted address'
+               );
+           });
+
+           it('reverts when a non-whitelisted address invokes the function', async function () {
+               await expectRevert.unspecified(this.token.updateAuctionWhitelist(anotherAuction, {from: another}));
+           });
         });
     });
 
