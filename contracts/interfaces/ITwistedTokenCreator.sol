@@ -4,7 +4,7 @@ contract ITwistedTokenCreator {
     function createTwisted(
         uint256 _round,
         uint256 _parameter,
-        string calldata _ipfsUrl,
-        address _owner
+        string calldata _ipfsHash,
+        address _recipient
     ) external returns (uint256 _tokenId);
 }
