@@ -72,7 +72,7 @@ contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator
         return (
             twist.round,
             twist.parameter,
-            Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash)
+            Strings.strConcat(tokenBaseURI, twist.ipfsHash)
         );
     }
 
