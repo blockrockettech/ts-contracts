@@ -1,5 +1,13 @@
+# General folder ignores
 node_modules/
 build/
+coverageEnv/
+coverage/
+
+# General file ignores
+allFiredEvents
+scTopics
+coverage.json
 
 # Created by https://www.gitignore.io/api/intellij+all
 # Edit at https://www.gitignore.io/?templates=intellij+all

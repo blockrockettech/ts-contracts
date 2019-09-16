@@ -6,14 +6,17 @@
     "test": "test"
   },
   "scripts": {
-    "test": "truffle test"
+    "test": "truffle test --network development",
+    "coverage": "./node_modules/.bin/solidity-coverage"
   },
   "author": "BlockRocket.tech",
   "license": "MIT",
   "devDependencies": {
     "@openzeppelin/contracts": "^2.3.0",
     "chai": "^4.2.0",
+    "eth-gas-reporter": "^0.2.11",
     "openzeppelin-test-helpers": "^0.4.3",
+    "solidity-coverage": "github:rotcivegaf/solidity-coverage",
     "truffle-flattener": "^1.4.2"
   },
   "dependencies": {
