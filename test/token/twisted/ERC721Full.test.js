@@ -7,6 +7,7 @@ const { shouldSupportInterfaces } = require('../SupportsInterface.behavior');
 const should = require('chai').should();
 
 const TwistedToken = artifacts.require('TwistedToken');
+const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([
                                      creator,
@@ -34,10 +35,12 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
     ] = accounts;
 
     beforeEach(async function () {
-        this.token = await TwistedToken.new(baseURI, auction, { from: creator });
-        (await this.token.isWhitelisted(creator)).should.be.true;
-        (await this.token.isWhitelisted(auction)).should.be.true;
-        (await this.token.auction()).should.be.equal(auction);
+        this.accessControls = await TwistedAccessControls.new({ from: creator });
+        await this.accessControls.addWhitelisted(minter, { from: creator });
+        (await this.accessControls.isWhitelisted(creator)).should.be.true;
+        (await this.accessControls.isWhitelisted(minter)).should.be.true;
+
+        this.token = await TwistedToken.new(baseURI, this.accessControls.address, { from: creator });
     });
 
     describe('like a full ERC721', function () {
@@ -227,26 +230,6 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('should revert if index is greater than supply', async function () {
                 await expectRevert.unspecified(this.token.tokenByIndex(2));
             });
-        });
-
-        describe('updateAuctionWhitelist', function () {
-           it('should update the whitelisted auction contract\'s address', async function () {
-               (await this.token.updateAuctionWhitelist(anotherAuction, {from: creator}));
-               (await this.token.isWhitelisted(auction)).should.be.false;
-               (await this.token.isWhitelisted(anotherAuction)).should.be.true;
-               (await this.token.auction()).should.be.equal(anotherAuction);
-           });
-
-           it('reverts when the current auction contract attempts to whitelist', async function () {
-               await expectRevert(
-                   this.token.updateAuctionWhitelist(anotherAuction, {from: auction}),
-                   'Only whitelisted owners can update the auction\'s whitelisted address'
-               );
-           });
-
-           it('reverts when a non-whitelisted address invokes the function', async function () {
-               await expectRevert.unspecified(this.token.updateAuctionWhitelist(anotherAuction, {from: another}));
-           });
         });
     });
 

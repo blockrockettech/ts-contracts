@@ -1,14 +1,16 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
 import "./ERC721/CustomERC721Full.sol";
 
 import "./libs/Strings.sol";
 import "./interfaces/ITwistedTokenCreator.sol";
+import "./interfaces/ITwistedAccessControls.sol";
 
-contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator {
+contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
     using SafeMath for uint256;
+
+    ITwistedAccessControls accessControls;
 
     string public tokenBaseURI = "";
 
@@ -28,16 +30,19 @@ contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator
     address public auction;
     mapping(uint256 => Twist) internal twists;
 
+    modifier isWhitelisted() {
+        require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
+        _;
+    }
+
     modifier onlyWhenTokenExists(uint256 _tokenId) {
         require(_exists(_tokenId), "Token not found for ID");
         _;
     }
 
-    constructor (string memory _tokenBaseURI, address _auction) public CustomERC721Full("Twisted", "TWIST") {
-        super.addWhitelisted(msg.sender);
-        super.addWhitelisted(_auction);
+    constructor (string memory _tokenBaseURI, ITwistedAccessControls _accessControls) public CustomERC721Full("Twisted", "TWIST") {
+        accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
-        auction = _auction;
     }
 
     function createTwisted(
@@ -45,7 +50,7 @@ contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator
         uint256 _parameter,
         string calldata _ipfsHash,
         address _recipient
-    ) external onlyWhitelisted returns (uint256 _tokenId) {
+    ) external isWhitelisted returns (uint256 _tokenId) {
         tokenIdPointer = tokenIdPointer.add(1);
         uint256 tokenId = tokenIdPointer;
 
@@ -89,20 +94,13 @@ contract TwistedToken is CustomERC721Full, WhitelistedRole, ITwistedTokenCreator
         return _tokensOfOwner(owner);
     }
 
-    function updateTokenBaseURI(string calldata _newBaseURI) external onlyWhitelisted {
+    function updateTokenBaseURI(string calldata _newBaseURI) external isWhitelisted {
         require(bytes(_newBaseURI).length != 0, "Base URI invalid");
         tokenBaseURI = _newBaseURI;
     }
 
-    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external onlyWhitelisted onlyWhenTokenExists(_tokenId) {
+    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external isWhitelisted onlyWhenTokenExists(_tokenId) {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
         twists[_tokenId].ipfsHash = _newIpfsHash;
-    }
-
-    function updateAuctionWhitelist(address _to) external onlyWhitelisted {
-        require(msg.sender != auction, "Only whitelisted owners can update the auction's whitelisted address");
-        super.removeWhitelisted(auction);
-        super.addWhitelisted(_to);
-        auction = _to;
     }
 }
