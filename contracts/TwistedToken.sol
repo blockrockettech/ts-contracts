@@ -10,7 +10,7 @@ import "./interfaces/ITwistedAccessControls.sol";
 contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
     using SafeMath for uint256;
 
-    ITwistedAccessControls accessControls;
+    ITwistedAccessControls public accessControls;
 
     string public tokenBaseURI = "";
 
