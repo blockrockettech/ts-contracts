@@ -40,6 +40,10 @@ contract TwistedAuction {
     // round <> address of the highest bidder
     mapping(uint256 => address) highestBidderFromRound;
 
+    // round <> whether a TWIST token was successfully minted
+    mapping(uint256 => bool) twistMintedForRound;
+    //todo: want to ensure that the above and prev round is checked to test eligibility for voting in current round
+
     ITwistedAccessControls public accessControls;
     ITwistedTokenCreator public twistedTokenCreator;
     ITwistedAuctionFundSplitter public auctionFundSplitter;
