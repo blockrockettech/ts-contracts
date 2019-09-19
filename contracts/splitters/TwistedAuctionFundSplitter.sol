@@ -2,29 +2,20 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/ITwistedAuctionFundSplitter.sol";
-import "./interfaces/ITwistedAccessControls.sol";
-import "./interfaces/ITwistedArtistCommissionRegistry.sol";
+import "../interfaces/ITwistedArtistCommissionRegistry.sol";
 
-contract TwistedAuctionFundSplitter is ITwistedAuctionFundSplitter {
+contract TwistedAuctionFundSplitter {
     using SafeMath for uint256;
 
-    event AuctionFundSplit(uint256 _round, uint256 _totalValue, address _caller);
+    event FundSplitAndTransferred(uint256 _totalValue, address payable _recipient);
 
-    ITwistedAccessControls public accessControls;
     ITwistedArtistCommissionRegistry public artistCommissionRegistry;
 
-    modifier isWhitelisted() {
-        require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
-        _;
-    }
-
-    constructor(ITwistedAccessControls _accessControls, ITwistedArtistCommissionRegistry _artistCommissionRegistry) public {
-        accessControls = _accessControls;
+    constructor(ITwistedArtistCommissionRegistry _artistCommissionRegistry) public {
         artistCommissionRegistry = _artistCommissionRegistry;
     }
 
-    function splitFunds(uint256 _round) external payable isWhitelisted returns (bool) {
+    function() external payable {
         (uint256[] memory _percentages, address payable[] memory _artists) = artistCommissionRegistry.getCommissionSplits();
         require(_percentages.length > 0, "No commissions found");
 
@@ -37,10 +28,8 @@ contract TwistedAuctionFundSplitter is ITwistedAuctionFundSplitter {
             uint256 valueToSend = msg.value.div(modulo).mul(percentage);
             (bool success, ) = artist.call.value(valueToSend)("");
             require(success, "Transfer failed");
+
+            emit FundSplitAndTransferred(valueToSend, artist);
         }
-
-        emit AuctionFundSplit(_round, msg.value, msg.sender);
-
-        return true;
     }
 }

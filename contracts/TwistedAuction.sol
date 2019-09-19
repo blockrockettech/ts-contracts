@@ -4,25 +4,21 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/ITwistedAccessControls.sol";
 import "./interfaces/ITwistedTokenCreator.sol";
-import "./interfaces/ITwistedAuctionFundSplitter.sol";
+import "./splitters/TwistedAuctionFundSplitter.sol";
 
 contract TwistedAuction {
     using SafeMath for uint256;
 
     event AuctionCreated(
-        uint256 _numOfRounds,
-        uint256 _roundStartTime,
         address indexed _creator
     );
 
     event BidAccepted(
         uint256 indexed _round,
         uint256 _param,
-        uint256 _value,
+        uint256 _bidValue,
         address indexed bidder
     );
-
-    bool public isAuctionActive;
 
     uint256 public auctionStartTime;
 
@@ -46,7 +42,7 @@ contract TwistedAuction {
 
     ITwistedAccessControls public accessControls;
     ITwistedTokenCreator public twistedTokenCreator;
-    ITwistedAuctionFundSplitter public auctionFundSplitter;
+    TwistedAuctionFundSplitter public auctionFundSplitter;
 
     modifier isWhitelisted() {
         require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
@@ -55,19 +51,30 @@ contract TwistedAuction {
 
     constructor(ITwistedAccessControls _accessControls,
                 ITwistedTokenCreator _twistedTokenCreator,
-                ITwistedAuctionFundSplitter _auctionFundSplitter) public {
+                TwistedAuctionFundSplitter _auctionFundSplitter) public {
         accessControls = _accessControls;
         twistedTokenCreator = _twistedTokenCreator;
         auctionFundSplitter = _auctionFundSplitter;
     }
 
-    function isRoundOpenForBidding() public view returns (bool) {
-        require(isAuctionActive && currentRound > 0, "Auction is inactive or not properly configured");
+    function _isBidValid(uint256 _bidValue) internal view returns (bool) {
+        require(currentRound > 0, "Auction is inactive or not properly configured");
+
         uint256 offsetFromStartingRound = currentRound.sub(1);
+
+        bool isTwistFromPreviousRoundMinted = true;
+        if(offsetFromStartingRound > 0 && !twistMintedForRound[offsetFromStartingRound]) {
+            isTwistFromPreviousRoundMinted = false;
+        }
+        require(isTwistFromPreviousRoundMinted, "TWIST from the previous round has not been minted");
+
         uint256 currentRoundSecondsOffsetSinceFirstRound = secondsInADay.mul(offsetFromStartingRound);
         uint256 currentRoundStartTime = auctionStartTime.add(currentRoundSecondsOffsetSinceFirstRound);
         uint256 currentRoundEndTime = currentRoundStartTime.add(roundLengthInSeconds);
-        return now >= currentRoundStartTime && now <= currentRoundEndTime;
+        bool isWithinBiddingWindow = now >= currentRoundStartTime && now <= currentRoundEndTime;
+        require(isWithinBiddingWindow, "This round's bidding window is not open");
+
+        return _bidValue > highestBidFromRound[currentRound];
     }
 
     // todo: createAuction function to setup rounds etc. needs to be whitelisted
