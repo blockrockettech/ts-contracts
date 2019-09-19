@@ -20,6 +20,8 @@ contract TwistedAuction {
         address indexed bidder
     );
 
+    address payable printingFund;
+
     uint256 public auctionStartTime;
 
     uint256 public currentRound;
@@ -38,7 +40,6 @@ contract TwistedAuction {
 
     // round <> whether a TWIST token was successfully minted
     mapping(uint256 => bool) twistMintedForRound;
-    //todo: want to ensure that the above and prev round is checked to test eligibility for voting in current round
 
     ITwistedAccessControls public accessControls;
     ITwistedTokenCreator public twistedTokenCreator;
@@ -57,8 +58,17 @@ contract TwistedAuction {
         auctionFundSplitter = _auctionFundSplitter;
     }
 
+    function _resetAuction() internal {
+        for(uint256 i = 0; i < numOfRounds; i++) {
+            delete winningRoundParameter[i];
+            delete highestBidFromRound[i];
+            delete highestBidderFromRound[i];
+            delete twistMintedForRound[i];
+        }
+    }
+
     function _isBidValid(uint256 _bidValue) internal view returns (bool) {
-        require(currentRound > 0, "Auction is inactive or not properly configured");
+        require(currentRound > 0 && currentRound <= numOfRounds, "Auction is inactive or has ended");
 
         uint256 offsetFromStartingRound = currentRound.sub(1);
 
@@ -77,7 +87,46 @@ contract TwistedAuction {
         return _bidValue > highestBidFromRound[currentRound];
     }
 
-    // todo: createAuction function to setup rounds etc. needs to be whitelisted
-    // todo: issueTwist function
-    // todo: bid function
+    function createAuction(address payable _printingFund, uint256 _auctionStartTime) external isWhitelisted {
+        require(now < _auctionStartTime, "Auction start time is not in the future");
+        _resetAuction();
+        printingFund = _printingFund;
+        auctionStartTime = _auctionStartTime;
+        currentRound = 1;
+        emit AuctionCreated(msg.sender);
+    }
+
+    function bid(uint256 _parameter) external payable {
+        require(_isBidValid(msg.value), "Bid was unsuccessful");
+        // todo: refund the previous highest bid if one exists
+        highestBidFromRound[currentRound] = msg.value;
+        highestBidderFromRound[currentRound] = msg.sender;
+        winningRoundParameter[currentRound] = _parameter;
+    }
+
+    function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
+        uint256 winningRoundParam = winningRoundParameter[currentRound];
+        require(winningRoundParam > 0, "No one has bid");
+        require(!twistMintedForRound[currentRound], "TWIST token has already minted for the current round");
+
+        // Issue the TWIST
+        address winner = highestBidderFromRound[currentRound];
+        uint256 tokenId = twistedTokenCreator.createTwisted(currentRound, winningRoundParam, _ipfsHash, winner);
+        require(tokenId == currentRound, "Error minting the TWIST token");
+        twistMintedForRound[currentRound] = true;
+
+        // todo: Fund split from highest bid
+
+        currentRound.add(1);
+    }
+
+    function updateNumberOfRounds(uint256 _numOfRounds) external isWhitelisted {
+        require(_numOfRounds >= currentRound, "Number of rounds can't be smaller than the number of previous");
+        numOfRounds = _numOfRounds;
+    }
+
+    function updateRoundLength(uint256 _roundLengthInSeconds) external isWhitelisted {
+        require(_roundLengthInSeconds < secondsInADay);
+        roundLengthInSeconds = _roundLengthInSeconds;
+    }
 }
