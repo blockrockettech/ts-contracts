@@ -17,13 +17,13 @@ contract TwistedAuction {
         uint256 indexed _round,
         uint256 _param,
         uint256 _amount,
-        address indexed bidder
+        address indexed _bidder
     );
 
     event BidderRefunded(
         uint256 indexed _round,
         uint256 _amount,
-        address indexed bidder
+        address indexed _bidder
     );
 
     address payable printingFund;
@@ -53,11 +53,6 @@ contract TwistedAuction {
 
     modifier isWhitelisted() {
         require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
-        _;
-    }
-
-    modifier onlyWhenAccountBalanceMatchesHighestBid() {
-        require(address(this).balance == highestBidFromRound[currentRound], "Mis-match between account balance and bid");
         _;
     }
 
@@ -101,10 +96,12 @@ contract TwistedAuction {
         return _bidValue > highestBidFromRound[currentRound];
     }
 
-    function _refundHighestBidder() internal onlyWhenAccountBalanceMatchesHighestBid {
+    function _refundHighestBidder() internal {
         uint256 highestBidAmount = highestBidFromRound[currentRound];
         address highestBidder = highestBidderFromRound[currentRound];
         if (highestBidder != address(0) && highestBidAmount > 0) {
+            require(address(this).balance == highestBidAmount, "Mis-match between account balance and highest bid");
+
             // Clear out highest bidder as there is no longer one
             delete highestBidderFromRound[currentRound];
 
@@ -115,7 +112,9 @@ contract TwistedAuction {
         }
     }
 
-    function _splitFundsFromHighestBid() internal onlyWhenAccountBalanceMatchesHighestBid {
+    function _splitFundsFromHighestBid() internal {
+        require(address(this).balance == highestBidFromRound[currentRound], "Mis-match between account balance and bid");
+
         // Split - 50% -> 3D Printing Fund, 50% -> TwistedAuctionFundSplitter
         uint256 valueToSend = highestBidFromRound[currentRound].div(2);
 
@@ -141,6 +140,7 @@ contract TwistedAuction {
         highestBidFromRound[currentRound] = msg.value;
         highestBidderFromRound[currentRound] = msg.sender;
         winningRoundParameter[currentRound] = _parameter;
+        emit BidAccepted(currentRound, winningRoundParameter[currentRound], highestBidFromRound[currentRound], highestBidderFromRound[currentRound]);
     }
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {

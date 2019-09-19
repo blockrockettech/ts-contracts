@@ -1,4 +1,4 @@
-const { BN, constants, expectEvent, expectRevert } = require('openzeppelin-test-helpers');
+const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
 const { ZERO_ADDRESS } = constants;
 
 const {expect} = require('chai');
@@ -12,6 +12,7 @@ const TwistedAuction = artifacts.require('TwistedAuction');
 contract.only('Twisted Auction Tests', function ([
                                       creator,
                                       printingFund,
+                                      bidder,
                                       ...accounts
                                   ]) {
     const baseURI = "ipfs/";
@@ -32,6 +33,7 @@ contract.only('Twisted Auction Tests', function ([
     };
 
     function now(){ return Math.floor( Date.now() / 1000 ) }
+    function sleep(ms) {return new Promise(resolve => setTimeout(resolve, ms));}
 
     beforeEach(async function () {
         this.accessControls = await TwistedAccessControls.new({ from: creator });
@@ -58,14 +60,33 @@ contract.only('Twisted Auction Tests', function ([
     });
 
     describe('happy path', function () {
-        describe('creating the auction', function () {
-            it('should be successful with valid parameters', async function () {
-                ({ logs: this.logs } = await this.auction.createAuction(printingFund, now() + 2, { from: creator }));
-                expectEvent.inLogs(this.logs, 'AuctionCreated', {
-                    _creator: creator
+        beforeEach(async function () {
+            ({ logs: this.logs } = await this.auction.createAuction(printingFund, now() + 1, { from: creator }));
+            expectEvent.inLogs(this.logs, 'AuctionCreated', {
+                _creator: creator
+            });
+
+            expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
+        });
+
+        describe('bidding', function () {
+            const oneEth = ether('1');
+
+            it('should be successful with valid params', async function () {
+                await sleep(1000);
+                const auctionContractBalance = await balance.tracker(this.auction.address);
+                //todo: track bidder balance and make assertions based on that
+
+                const param = new BN('2');
+                ({ logs: this.logs} = await this.auction.bid(param, { value: oneEth, from: bidder }));
+                expectEvent.inLogs(this.logs, 'BidAccepted', {
+                    _round: new BN('1'),
+                    _param: param,
+                    _amount: oneEth,
+                    _bidder: bidder
                 });
 
-                expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
+                expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth);
             });
         });
     });
