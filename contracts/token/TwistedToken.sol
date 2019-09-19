@@ -1,11 +1,12 @@
 pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./ERC721/CustomERC721Full.sol";
 
-import "./libs/Strings.sol";
-import "./interfaces/ITwistedTokenCreator.sol";
-import "./interfaces/ITwistedAccessControls.sol";
+import "../libs/Strings.sol";
+import "../interfaces/erc721/CustomERC721Full.sol";
+import "../interfaces/ITwistedTokenCreator.sol";
+import "../interfaces/ITwistedAccessControls.sol";
+
 
 contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
     using SafeMath for uint256;

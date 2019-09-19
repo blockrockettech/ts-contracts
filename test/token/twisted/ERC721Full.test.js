@@ -12,7 +12,6 @@ const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 contract('ERC721 Full Test Suite for TwistedToken', function ([
                                      creator,
                                      auction,
-                                     anotherAuction,
                                      ...accounts
                                  ]) {
     const name = 'Twisted';

@@ -49,7 +49,7 @@ contract TwistedArtistCommissionRegistry is ITwistedArtistCommissionRegistry {
             require(artist != address(0x0), "Invalid address");
             artists.push(artist);
             artistCommissionSplit[artist] = _percentages[i];
-            total.add(_percentages[i]);
+            total = total.add(_percentages[i]);
         }
 
         require(total == maxCommission, "Total commission does not match allowance");
