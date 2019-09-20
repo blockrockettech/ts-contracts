@@ -47,9 +47,6 @@ contract TwistedAuction {
     // round <> address of the highest bidder
     mapping(uint256 => address) public highestBidderFromRound;
 
-    // round <> whether a TWIST token was successfully minted
-    mapping(uint256 => bool) public twistMintedForRound;
-
     ITwistedAccessControls public accessControls;
     ITwistedTokenCreator public twistedTokenCreator;
     TwistedAuctionFundSplitter public auctionFundSplitter;
@@ -70,7 +67,6 @@ contract TwistedAuction {
         auctionFundSplitter = _auctionFundSplitter;
         printingFund = _printingFund;
         auctionStartTime = _auctionStartTime;
-        twistMintedForRound[0] = true;
     }
 
     function _isWithinBiddingWindowForRound() internal view returns (bool) {
@@ -82,8 +78,7 @@ contract TwistedAuction {
     }
 
     function _isBidValid(uint256 _bidValue) internal view {
-        require(currentRound > 0 && currentRound <= numOfRounds, "Auction is inactive or has ended");
-        require(twistMintedForRound[currentRound.sub(1)], "TWIST from the previous round has not been minted");
+        require(currentRound <= numOfRounds, "Auction has ended");
         require(_bidValue >= minBid, "The bid didn't reach the minimum bid threshold");
         require(_bidValue > highestBidFromRound[currentRound], "The bid was not higher than the last");
         require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
@@ -106,7 +101,7 @@ contract TwistedAuction {
 
     function _splitFundsFromHighestBid() internal {
         // Split - 50% -> 3D Printing Fund, 50% -> TwistedAuctionFundSplitter
-        uint256 valueToSend = highestBidFromRound[currentRound].div(2);
+        uint256 valueToSend = highestBidFromRound[currentRound.sub(1)].div(2);
 
         (bool pfSuccess, ) = printingFund.call.value(valueToSend)("");
         require(pfSuccess, "Failed to transfer funds to the printing fund");
@@ -126,21 +121,19 @@ contract TwistedAuction {
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
         require(!_isWithinBiddingWindowForRound(), "Current round still active");
-        require(highestBidFromRound[currentRound] > 0, "No one has bid");
-        require(!twistMintedForRound[currentRound], "TWIST token has already minted for the current round");
-
-        // Issue the TWIST
-        address winner = highestBidderFromRound[currentRound];
-        uint256 winningRoundParam = winningRoundParameter[currentRound];
-        uint256 tokenId = twistedTokenCreator.createTwisted(currentRound, winningRoundParam, _ipfsHash, winner);
-        require(tokenId == currentRound, "Error minting the TWIST token");
-        twistMintedForRound[currentRound] = true;
-
-        // Take the proceedings from the highest bid and split funds accordingly
-        _splitFundsFromHighestBid();
+        require(highestBidFromRound[currentRound] > 0 && highestBidderFromRound[currentRound] != address(0), "No one has bid");
 
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
+
+        // Issue the TWIST
+        address winner = highestBidderFromRound[previousRound];
+        uint256 winningRoundParam = winningRoundParameter[previousRound];
+        uint256 tokenId = twistedTokenCreator.createTwisted(previousRound, winningRoundParam, _ipfsHash, winner);
+        require(tokenId == previousRound, "Error minting the TWIST token");
+
+        // Take the proceedings from the highest bid and split funds accordingly
+        _splitFundsFromHighestBid();
 
         emit RoundFinalised(previousRound, currentRound, tokenId);
     }

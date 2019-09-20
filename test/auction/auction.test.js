@@ -67,16 +67,14 @@ contract.only('Twisted Auction Tests', function ([
             now() + 2
         );
 
+        expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
+        await this.auction.updateAuctionStartTime(now() - 1, { from: creator });
+
         await this.accessControls.addWhitelisted(this.auction.address);
         expect(await this.accessControls.isWhitelisted(this.auction.address)).to.be.true;
     });
 
     describe('happy path', function () {
-        beforeEach(async function () {
-            await this.auction.updateAuctionStartTime(now() - 1, { from: creator });
-            expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
-        });
-
         describe('bidding', function () {
             it('should be successful with valid params', async function () {
                 const auctionContractBalance = await balance.tracker(this.auction.address);
@@ -145,7 +143,6 @@ contract.only('Twisted Auction Tests', function ([
                     _issuedTokenId: expectedTokenId
                 });
 
-                expect(await this.auction.twistMintedForRound('1')).to.be.true;
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
                 expect(await this.token.tokenOfOwnerByIndex(bidder, 0)).to.be.bignumber.equal(expectedTokenId);
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
@@ -209,6 +206,63 @@ contract.only('Twisted Auction Tests', function ([
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
 
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
+            });
+        });
+    });
+
+    describe('should fail', function () {
+        describe('on contract creation', function () {
+            it('when start time is in the past', async function() {
+                expectRevert(
+                    TwistedAuction.new(
+                        this.accessControls.address,
+                        this.token.address,
+                        this.auctionFundSplitter.address,
+                        printingFund,
+                        now() - 1
+                    ),
+                    "Auction start time is not in the future"
+                );
+            });
+        });
+        describe('when bidding', function () {
+            it('if the last round has passed', async function () {
+                await this.auction.updateCurrentRound(22, { from: creator });
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('22');
+                expectRevert(
+                    this.auction.bid(4, { value: oneEth, from: bidder }),
+                    "Auction has ended"
+                );
+            });
+            it('if bid is less than min bid', async function () {
+                expectRevert(
+                    this.auction.bid(7, { value: ether('0.005'), from: bidder }),
+                    "The bid didn't reach the minimum bid threshold"
+                );
+            });
+            it('if bid was not higher than last', async function () {
+                await this.auction.bid(1, { value: oneEth, from: bidder });
+                expectRevert(
+                    this.auction.bid(4, { value: halfEth, from: anotherBidder }),
+                    "The bid was not higher than the last"
+                );
+            });
+            it('if the bidding window is not open for round', async function () {
+                const newAuctionStartTime = new BN((now() + 50).toString());
+                await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
+                expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
+                expectRevert(
+                    this.auction.bid(4, { value: oneEth, from: bidder }),
+                    "This round's bidding window is not open"
+                );
+            });
+        });
+        describe('when issuing the TWIST and prepping the next round', function () {
+            it('if the current round is still active', async function () {
+                expectRevert(
+                  this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
+                    "Current round still active"
+                );
             });
         });
     });

@@ -14,4 +14,8 @@ contract TwistedAuctionMock is TwistedAuction {
     function updateAuctionStartTime(uint256 _auctionStartTime) external isWhitelisted {
         auctionStartTime = _auctionStartTime;
     }
+
+    function updateCurrentRound(uint256 _currentRound) external isWhitelisted {
+        currentRound = _currentRound;
+    }
 }
