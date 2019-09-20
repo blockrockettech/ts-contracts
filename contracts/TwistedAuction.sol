@@ -26,6 +26,12 @@ contract TwistedAuction {
         address indexed _bidder
     );
 
+    event RoundFinalised(
+        uint256 indexed _round,
+        uint256 _nextRound,
+        uint256 _issuedTokenId
+    );
+
     address payable printingFund;
 
     uint256 public auctionStartTime;
@@ -156,7 +162,10 @@ contract TwistedAuction {
         // Take the proceedings from the highest bid and split funds accordingly
         _splitFundsFromHighestBid();
 
-        currentRound.add(1);
+        uint256 previousRound = currentRound;
+        currentRound = currentRound.add(1);
+
+        emit RoundFinalised(previousRound, currentRound, tokenId);
     }
 
     function updateNumberOfRounds(uint256 _numOfRounds) external isWhitelisted {

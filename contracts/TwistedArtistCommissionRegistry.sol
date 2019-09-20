@@ -26,11 +26,6 @@ contract TwistedArtistCommissionRegistry is ITwistedArtistCommissionRegistry {
         accessControls = _accessControls;
     }
 
-    function setMaxCommission(uint256 _maxCommission) isWhitelisted external returns (bool) {
-        maxCommission = _maxCommission;
-        return true;
-    }
-
     function setCommissionSplits(uint256[] calldata _percentages, address payable[] calldata _artists) external isWhitelisted returns (bool) {
         require(_percentages.length == _artists.length, "Differing percentage or recipient sizes");
 

@@ -8,7 +8,7 @@ import "../interfaces/ITwistedTokenCreator.sol";
 import "../interfaces/ITwistedAccessControls.sol";
 
 
-contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
+contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
     using SafeMath for uint256;
 
     ITwistedAccessControls public accessControls;
@@ -28,7 +28,6 @@ contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
 
     uint256 public tokenIdPointer = 0;
 
-    address public auction;
     mapping(uint256 => Twist) internal twists;
 
     modifier isWhitelisted() {
@@ -82,11 +81,6 @@ contract TwistedToken is CustomERC721Full, ITwistedTokenCreator {
         );
     }
 
-    /**
-     * @dev Returns an URI for a given token ID.
-     * Throws if the token ID does not exist. May return an empty string.
-     * @param _tokenId uint256 ID of the token to query
-     */
     function tokenURI(uint256 _tokenId) external onlyWhenTokenExists(_tokenId) view returns (string memory) {
         return Strings.strConcat(tokenBaseURI, twists[_tokenId].ipfsHash);
     }
