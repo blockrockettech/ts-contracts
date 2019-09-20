@@ -145,11 +145,6 @@ contract.only('Twisted Auction Tests', function ([
                 ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 const expectedTokenId = new BN('1');
-                /*expectEvent.inLogs(this.logs, 'TwistMinted', {
-                    _recipient: bidder,
-                    _tokenId: expectedTokenId
-                });*/
-
                 expectEvent.inLogs(this.logs, 'RoundFinalised', {
                     _round: new BN('1'),
                     _nextRound: new BN('2'),
@@ -157,6 +152,21 @@ contract.only('Twisted Auction Tests', function ([
                 });
 
                 (await this.token.tokenOfOwnerByIndex(bidder, 0)).should.be.bignumber.equal(expectedTokenId);
+            });
+
+            it('should correctly split funds after a TWIST is issued', async function () {
+                await sleep(1000);
+
+                const auctionContractBalance = await balance.tracker(this.auction.address);
+                const printingFundBalance = await balance.tracker(printingFund);
+                const artist1Balance = await balance.tracker(commission.artists[0]);
+                const artist2Balance  = await balance.tracker(commission.artists[1]);
+                const artist3Balance  = await balance.tracker(commission.artists[2]);
+
+                ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
+
+                expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth.mul(new BN('-1')));
+                expect(await printingFundBalance.delta()).to.be.bignumber.equal(oneEth.div(new BN('2')));
             });
         });
     });

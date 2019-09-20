@@ -6,7 +6,7 @@ const { shouldSupportInterfaces } = require('../SupportsInterface.behavior');
 
 const should = require('chai').should();
 
-const TwistedToken = artifacts.require('TwistedToken');
+const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([
@@ -39,7 +39,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
-        this.token = await TwistedToken.new(baseURI, this.accessControls.address, { from: creator });
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
     });
 
     describe('like a full ERC721', function () {

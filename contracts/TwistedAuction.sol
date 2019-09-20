@@ -36,10 +36,12 @@ contract TwistedAuction {
 
     uint256 public auctionStartTime;
 
+    //todo: min bid amounts
+
     uint256 public currentRound;
     uint256 public numOfRounds = 21;
-    uint256 public roundLengthInSeconds = 43200;
-    uint256 constant public secondsInADay = 86400;
+    uint256 public roundLengthInSeconds = 0.5 days;
+    uint256 constant public secondsInADay = 1 days;
 
     // round <> parameter from highest bidder
     mapping(uint256 => uint256) public winningRoundParameter;
@@ -89,14 +91,7 @@ contract TwistedAuction {
 
     function _isBidValid(uint256 _bidValue) internal view returns (bool) {
         require(currentRound > 0 && currentRound <= numOfRounds, "Auction is inactive or has ended");
-
-        uint256 offsetFromStartingRound = currentRound.sub(1);
-        bool isTwistFromPreviousRoundMinted = true;
-        if (offsetFromStartingRound > 0 && !twistMintedForRound[offsetFromStartingRound]) {
-            isTwistFromPreviousRoundMinted = false;
-        }
-
-        require(isTwistFromPreviousRoundMinted, "TWIST from the previous round has not been minted");
+        require(twistMintedForRound[currentRound.sub(1)], "TWIST from the previous round has not been minted");
         require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
 
         return _bidValue > highestBidFromRound[currentRound];
@@ -104,8 +99,9 @@ contract TwistedAuction {
 
     function _refundHighestBidder() internal {
         uint256 highestBidAmount = highestBidFromRound[currentRound];
-        address highestBidder = highestBidderFromRound[currentRound];
-        if (highestBidder != address(0) && highestBidAmount > 0) {
+        if (highestBidAmount > 0) {
+            address highestBidder = highestBidderFromRound[currentRound];
+
             // Clear out highest bidder as there is no longer one
             delete highestBidderFromRound[currentRound];
 
@@ -117,8 +113,6 @@ contract TwistedAuction {
     }
 
     function _splitFundsFromHighestBid() internal {
-        require(address(this).balance == highestBidFromRound[currentRound], "Mis-match between account balance and bid");
-
         // Split - 50% -> 3D Printing Fund, 50% -> TwistedAuctionFundSplitter
         uint256 valueToSend = highestBidFromRound[currentRound].div(2);
 
@@ -135,6 +129,7 @@ contract TwistedAuction {
         printingFund = _printingFund;
         auctionStartTime = _auctionStartTime;
         currentRound = 1;
+        twistMintedForRound[0] = true;
         emit AuctionCreated(msg.sender);
     }
 
