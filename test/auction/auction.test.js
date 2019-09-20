@@ -148,6 +148,7 @@ contract.only('Twisted Auction Tests', function ([
                 expect(await this.auction.twistMintedForRound('1')).to.be.true;
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
                 expect(await this.token.tokenOfOwnerByIndex(bidder, 0)).to.be.bignumber.equal(expectedTokenId);
+                expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
             });
 
             it('should correctly split funds after a TWIST is issued', async function () {
@@ -162,6 +163,7 @@ contract.only('Twisted Auction Tests', function ([
                 ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth.mul(new BN('-1')));
+                expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
                 expect(await printingFundBalance.delta()).to.be.bignumber.equal(halfEth);
 
                 const modulo = new BN('10000');
@@ -205,6 +207,8 @@ contract.only('Twisted Auction Tests', function ([
 
                 await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
+
+                expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
             });
         });
     });
