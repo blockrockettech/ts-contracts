@@ -1,6 +1,8 @@
 const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
 const { ZERO_ADDRESS } = constants;
 
+const gasSpent = require('../gas-spent-helper');
+
 const {expect} = require('chai');
 
 const TwistedAccessControls = artifacts.require('TwistedAccessControls');
@@ -61,7 +63,7 @@ contract.only('Twisted Auction Tests', function ([
 
     describe('happy path', function () {
         beforeEach(async function () {
-            ({ logs: this.logs } = await this.auction.createAuction(printingFund, now() + 1, { from: creator }));
+            ({ logs: this.logs } = await this.auction.createAuction(printingFund, now() + 2, { from: creator }));
             expectEvent.inLogs(this.logs, 'AuctionCreated', {
                 _creator: creator
             });
@@ -73,12 +75,12 @@ contract.only('Twisted Auction Tests', function ([
             const oneEth = ether('1');
 
             it('should be successful with valid params', async function () {
-                await sleep(1000);
+                await sleep(2000);
                 const auctionContractBalance = await balance.tracker(this.auction.address);
-                //todo: track bidder balance and make assertions based on that
+                const bidderBalance = await balance.tracker(bidder);
 
                 const param = new BN('2');
-                ({ logs: this.logs} = await this.auction.bid(param, { value: oneEth, from: bidder }));
+                ({ logs: this.logs, receipt: this.receipt} = await this.auction.bid(param, { value: oneEth, from: bidder }));
                 expectEvent.inLogs(this.logs, 'BidAccepted', {
                     _round: new BN('1'),
                     _param: param,
@@ -87,6 +89,7 @@ contract.only('Twisted Auction Tests', function ([
                 });
 
                 expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth);
+                expect(await bidderBalance.delta()).to.be.bignumber.equal(oneEth.add(gasSpent(this.receipt)).mul(new BN('-1')));
             });
         });
     });
