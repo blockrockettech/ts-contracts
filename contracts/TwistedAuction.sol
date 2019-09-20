@@ -144,7 +144,7 @@ contract TwistedAuction {
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
         require(!_isWithinBiddingWindowForRound(), "Current round still active");
-        require(highestBidFromRound[currentRound] > 0 && highestBidderFromRound[currentRound] != address(0), "No one has bid");
+        require(highestBidFromRound[currentRound] > 0, "No one has bid");
         require(!twistMintedForRound[currentRound], "TWIST token has already minted for the current round");
 
         // Issue the TWIST

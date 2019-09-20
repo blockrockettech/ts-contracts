@@ -9,7 +9,7 @@ const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
 const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuction = artifacts.require('TwistedAuction');
+const TwistedAuction = artifacts.require('TwistedAuctionMock');
 
 contract.only('Twisted Auction Tests', function ([
                                       creator,
@@ -44,7 +44,7 @@ contract.only('Twisted Auction Tests', function ([
 
     beforeEach(async function () {
         this.accessControls = await TwistedAccessControls.new({ from: creator });
-        (await this.accessControls.isWhitelisted(creator)).should.be.true;
+        expect(await this.accessControls.isWhitelisted(creator)).to.be.true;
 
         this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
 
@@ -66,7 +66,7 @@ contract.only('Twisted Auction Tests', function ([
         );
 
         await this.accessControls.addWhitelisted(this.auction.address);
-        (await this.accessControls.isWhitelisted(this.auction.address)).should.be.true;
+        expect(await this.accessControls.isWhitelisted(this.auction.address)).to.be.true;
     });
 
     describe('happy path', function () {
@@ -76,12 +76,12 @@ contract.only('Twisted Auction Tests', function ([
                 _creator: creator
             });
 
+            await this.auction.updateAuctionStartTime(now() - 1, { from: creator });
             expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
         });
 
         describe('bidding', function () {
             it('should be successful with valid params', async function () {
-                await sleep(2000);
                 const auctionContractBalance = await balance.tracker(this.auction.address);
                 const bidderBalance = await balance.tracker(bidder);
 
@@ -102,8 +102,6 @@ contract.only('Twisted Auction Tests', function ([
             });
 
             it('should refund last bid if has been outbid', async function () {
-                await sleep(2000);
-
                 const param = new BN('2');
                 await this.auction.bid(param, { value: oneEth, from: bidder });
 
@@ -131,17 +129,16 @@ contract.only('Twisted Auction Tests', function ([
 
         describe('issuing the TWIST and round management', function () {
             beforeEach(async function () {
-                await sleep(2000);
                 await this.auction.bid(new BN('3'), { value: oneEth, from: bidder });
                 expect(await this.auction.winningRoundParameter(1)).to.be.bignumber.equal('3');
                 expect(await this.auction.highestBidderFromRound(1)).to.be.equal(bidder);
 
                 await this.auction.updateRoundLength(0, { from: creator });
-                (await this.auction.roundLengthInSeconds()).should.be.bignumber.equal('0');
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
             });
 
             it('should issue the TWIST at the end of a round', async function () {
-                await sleep(1000);
+                await sleep(500);
                 ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 const expectedTokenId = new BN('1');
@@ -151,11 +148,13 @@ contract.only('Twisted Auction Tests', function ([
                     _issuedTokenId: expectedTokenId
                 });
 
-                (await this.token.tokenOfOwnerByIndex(bidder, 0)).should.be.bignumber.equal(expectedTokenId);
+                expect(await this.auction.twistMintedForRound('1')).to.be.true;
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
+                expect(await this.token.tokenOfOwnerByIndex(bidder, 0)).to.be.bignumber.equal(expectedTokenId);
             });
 
             it('should correctly split funds after a TWIST is issued', async function () {
-                await sleep(1000);
+                await sleep(500);
 
                 const auctionContractBalance = await balance.tracker(this.auction.address);
                 const printingFundBalance = await balance.tracker(printingFund);
@@ -187,6 +186,28 @@ contract.only('Twisted Auction Tests', function ([
                 let artistTotalFundsReceived = artist1Delta.add(artist2Delta);
                 artistTotalFundsReceived = artistTotalFundsReceived.add(artist3Delta);
                 expect(artistTotalFundsReceived).to.be.bignumber.equal(halfEth);
+            });
+
+            it('should continue to issue successfully after a few rounds', async function () {
+                // assumption is that a bid is received every round
+                await sleep(500);
+                await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
+
+                const newAuctionStartTime = (await this.auction.auctionStartTime()).sub(new BN('86400'));
+                await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
+                expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
+
+                await this.auction.updateRoundLength(5, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('5');
+
+                await this.auction.bid(new BN('1'), { value: oneHalfEth, from: anotherBidder });
+
+                await this.auction.updateRoundLength(0, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
+
+                await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
             });
         });
     });
