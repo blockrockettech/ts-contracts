@@ -166,7 +166,27 @@ contract.only('Twisted Auction Tests', function ([
                 ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth.mul(new BN('-1')));
-                expect(await printingFundBalance.delta()).to.be.bignumber.equal(oneEth.div(new BN('2')));
+                expect(await printingFundBalance.delta()).to.be.bignumber.equal(halfEth);
+
+                const modulo = new BN('10000');
+                const artist1Delta = await artist1Balance.delta();
+                expect(artist1Delta).to.be.bignumber.equal(
+                    halfEth.div(modulo).mul(commission.percentages[0])
+                );
+
+                const artist2Delta = await artist2Balance.delta();
+                expect(artist2Delta).to.be.bignumber.equal(
+                    halfEth.div(modulo).mul(commission.percentages[1])
+                );
+
+                const artist3Delta = await artist3Balance.delta();
+                expect(artist3Delta).to.be.bignumber.equal(
+                    halfEth.div(modulo).mul(commission.percentages[2])
+                );
+
+                let artistTotalFundsReceived = artist1Delta.add(artist2Delta);
+                artistTotalFundsReceived = artistTotalFundsReceived.add(artist3Delta);
+                expect(artistTotalFundsReceived).to.be.bignumber.equal(halfEth);
             });
         });
     });
