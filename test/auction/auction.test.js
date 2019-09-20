@@ -62,7 +62,9 @@ contract.only('Twisted Auction Tests', function ([
         this.auction = await TwistedAuction.new(
             this.accessControls.address,
             this.token.address,
-            this.auctionFundSplitter.address
+            this.auctionFundSplitter.address,
+            printingFund,
+            now() + 2
         );
 
         await this.accessControls.addWhitelisted(this.auction.address);
@@ -71,11 +73,6 @@ contract.only('Twisted Auction Tests', function ([
 
     describe('happy path', function () {
         beforeEach(async function () {
-            ({ logs: this.logs } = await this.auction.createAuction(printingFund, now() + 2, { from: creator }));
-            expectEvent.inLogs(this.logs, 'AuctionCreated', {
-                _creator: creator
-            });
-
             await this.auction.updateAuctionStartTime(now() - 1, { from: creator });
             expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
         });

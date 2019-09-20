@@ -9,10 +9,6 @@ import "./splitters/TwistedAuctionFundSplitter.sol";
 contract TwistedAuction {
     using SafeMath for uint256;
 
-    event AuctionCreated(
-        address indexed _creator
-    );
-
     event BidAccepted(
         uint256 indexed _round,
         uint256 _param,
@@ -36,9 +32,8 @@ contract TwistedAuction {
 
     uint256 public auctionStartTime;
 
-    //todo: min bid amounts
-
-    uint256 public currentRound;
+    uint256 public minBid = 0.01 ether;
+    uint256 public currentRound = 1;
     uint256 public numOfRounds = 21;
     uint256 public roundLengthInSeconds = 0.5 days;
     uint256 constant public secondsInADay = 1 days;
@@ -66,19 +61,16 @@ contract TwistedAuction {
 
     constructor(ITwistedAccessControls _accessControls,
                 ITwistedTokenCreator _twistedTokenCreator,
-                TwistedAuctionFundSplitter _auctionFundSplitter) public {
+                TwistedAuctionFundSplitter _auctionFundSplitter,
+                address payable _printingFund,
+                uint256 _auctionStartTime) public {
+        require(now < _auctionStartTime, "Auction start time is not in the future");
         accessControls = _accessControls;
         twistedTokenCreator = _twistedTokenCreator;
         auctionFundSplitter = _auctionFundSplitter;
-    }
-
-    function _resetAuction() internal {
-        for(uint256 i = 0; i < numOfRounds; i++) {
-            delete winningRoundParameter[i];
-            delete highestBidFromRound[i];
-            delete highestBidderFromRound[i];
-            delete twistMintedForRound[i];
-        }
+        printingFund = _printingFund;
+        auctionStartTime = _auctionStartTime;
+        twistMintedForRound[0] = true;
     }
 
     function _isWithinBiddingWindowForRound() internal view returns (bool) {
@@ -89,12 +81,12 @@ contract TwistedAuction {
         return now >= currentRoundStartTime && now <= currentRoundEndTime;
     }
 
-    function _isBidValid(uint256 _bidValue) internal view returns (bool) {
+    function _isBidValid(uint256 _bidValue) internal view {
         require(currentRound > 0 && currentRound <= numOfRounds, "Auction is inactive or has ended");
         require(twistMintedForRound[currentRound.sub(1)], "TWIST from the previous round has not been minted");
+        require(_bidValue >= minBid, "The bid didn't reach the minimum bid threshold");
+        require(_bidValue > highestBidFromRound[currentRound], "The bid was not higher than the last");
         require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
-
-        return _bidValue > highestBidFromRound[currentRound];
     }
 
     function _refundHighestBidder() internal {
@@ -123,18 +115,8 @@ contract TwistedAuction {
         require(fsSuccess, "Failed to send funds to the auction fund splitter");
     }
 
-    function createAuction(address payable _printingFund, uint256 _auctionStartTime) external isWhitelisted {
-        require(now < _auctionStartTime, "Auction start time is not in the future");
-        _resetAuction();
-        printingFund = _printingFund;
-        auctionStartTime = _auctionStartTime;
-        currentRound = 1;
-        twistMintedForRound[0] = true;
-        emit AuctionCreated(msg.sender);
-    }
-
     function bid(uint256 _parameter) external payable {
-        require(_isBidValid(msg.value), "Bid was unsuccessful");
+        _isBidValid(msg.value);
         _refundHighestBidder();
         highestBidFromRound[currentRound] = msg.value;
         highestBidderFromRound[currentRound] = msg.sender;

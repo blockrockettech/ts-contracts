@@ -3,10 +3,13 @@ pragma solidity ^0.5.0;
 import "../TwistedAuction.sol";
 
 contract TwistedAuctionMock is TwistedAuction {
-    constructor(ITwistedAccessControls _accessControls,
+    constructor(
+        ITwistedAccessControls _accessControls,
         ITwistedTokenCreator _twistedTokenCreator,
-        TwistedAuctionFundSplitter _auctionFundSplitter)
-        public TwistedAuction(_accessControls, _twistedTokenCreator, _auctionFundSplitter) {}
+        TwistedAuctionFundSplitter _auctionFundSplitter,
+        address payable _printingFund,
+        uint256 _auctionStartTime
+    ) public TwistedAuction(_accessControls, _twistedTokenCreator, _auctionFundSplitter, _printingFund, _auctionStartTime) {}
 
     function updateAuctionStartTime(uint256 _auctionStartTime) external isWhitelisted {
         auctionStartTime = _auctionStartTime;
