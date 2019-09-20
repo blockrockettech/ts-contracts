@@ -68,7 +68,7 @@ contract.only('Twisted Auction Tests', function ([
         );
 
         expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
-        await this.auction.updateAuctionStartTime(now() - 1, { from: creator });
+        await this.auction.updateAuctionStartTime(now() - 50, { from: creator });
 
         await this.accessControls.addWhitelisted(this.auction.address);
         expect(await this.accessControls.isWhitelisted(this.auction.address)).to.be.true;
@@ -133,7 +133,6 @@ contract.only('Twisted Auction Tests', function ([
             });
 
             it('should issue the TWIST at the end of a round', async function () {
-                await sleep(500);
                 ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 const expectedTokenId = new BN('1');
@@ -149,8 +148,6 @@ contract.only('Twisted Auction Tests', function ([
             });
 
             it('should correctly split funds after a TWIST is issued', async function () {
-                await sleep(500);
-
                 const auctionContractBalance = await balance.tracker(this.auction.address);
                 const printingFundBalance = await balance.tracker(printingFund);
                 const artist1Balance = await balance.tracker(commission.artists[0]);
@@ -186,7 +183,7 @@ contract.only('Twisted Auction Tests', function ([
 
             it('should continue to issue successfully after a few rounds', async function () {
                 // assumption is that a bid is received every round
-                await sleep(500);
+
                 await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
 
@@ -194,8 +191,8 @@ contract.only('Twisted Auction Tests', function ([
                 await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
                 expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
 
-                await this.auction.updateRoundLength(5, { from: creator });
-                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('5');
+                await this.auction.updateRoundLength(500, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('500');
 
                 await this.auction.bid(new BN('1'), { value: oneHalfEth, from: anotherBidder });
 
@@ -206,6 +203,11 @@ contract.only('Twisted Auction Tests', function ([
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
 
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
+            });
+
+            it('should successfully update the number of rounds if required', async function () {
+                await this.auction.updateNumberOfRounds(25, { from: creator });
+                expect(await this.auction.numOfRounds()).to.be.bignumber.equal('25');
             });
         });
     });
@@ -262,6 +264,14 @@ contract.only('Twisted Auction Tests', function ([
                 expectRevert(
                   this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
                     "Current round still active"
+                );
+            });
+            it('if no one has bid', async function () {
+                await this.auction.updateRoundLength(0, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
+                expectRevert(
+                    this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
+                    "No one has bid"
                 );
             });
         });
