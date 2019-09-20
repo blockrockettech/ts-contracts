@@ -15,6 +15,7 @@ contract.only('Twisted Auction Tests', function ([
                                       creator,
                                       printingFund,
                                       bidder,
+                                      anotherBidder,
                                       ...accounts
                                   ]) {
     const baseURI = "ipfs/";
@@ -72,7 +73,9 @@ contract.only('Twisted Auction Tests', function ([
         });
 
         describe('bidding', function () {
+            const halfEth = ether('0.5');
             const oneEth = ether('1');
+            const oneHalfEth = ether('1.5');
 
             it('should be successful with valid params', async function () {
                 await sleep(2000);
@@ -88,8 +91,38 @@ contract.only('Twisted Auction Tests', function ([
                     _bidder: bidder
                 });
 
+                expect(await this.auction.winningRoundParameter(1)).to.be.bignumber.equal('2');
+                expect(await this.auction.highestBidFromRound(1)).to.be.bignumber.equal(oneEth);
+                expect(await this.auction.highestBidderFromRound(1)).to.be.equal(bidder);
                 expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth);
                 expect(await bidderBalance.delta()).to.be.bignumber.equal(oneEth.add(gasSpent(this.receipt)).mul(new BN('-1')));
+            });
+
+            it('should refund last bid if has been outbid', async function () {
+                await sleep(2000);
+
+                const param = new BN('2');
+                await this.auction.bid(param, { value: oneEth, from: bidder });
+
+                const auctionContractBalance = await balance.tracker(this.auction.address);
+                const bidderBalance = await balance.tracker(bidder);
+                const anotherBidderBalance = await balance.tracker(anotherBidder);
+
+                const paramAnotherBidder = new BN('1');
+                ({ logs: this.logs, receipt: this.receipt} = await this.auction.bid(paramAnotherBidder, { value: oneHalfEth, from: anotherBidder }));
+                expectEvent.inLogs(this.logs, 'BidAccepted', {
+                    _round: new BN('1'),
+                    _param: paramAnotherBidder,
+                    _amount: oneHalfEth,
+                    _bidder: anotherBidder
+                });
+
+                expect(await this.auction.winningRoundParameter(1)).to.be.bignumber.equal('1');
+                expect(await this.auction.highestBidFromRound(1)).to.be.bignumber.equal(oneHalfEth);
+                expect(await this.auction.highestBidderFromRound(1)).to.be.equal(anotherBidder);
+                expect(await auctionContractBalance.delta()).to.be.bignumber.equal(halfEth);
+                expect(await bidderBalance.delta()).to.be.bignumber.equal(oneEth);
+                expect(await anotherBidderBalance.delta()).to.be.bignumber.equal(oneHalfEth.add(gasSpent(this.receipt)).mul(new BN('-1')));
             });
         });
     });

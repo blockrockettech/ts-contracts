@@ -36,16 +36,16 @@ contract TwistedAuction {
     uint256 constant public secondsInADay = 86400;
 
     // round <> parameter from highest bidder
-    mapping(uint256 => uint256) winningRoundParameter;
+    mapping(uint256 => uint256) public winningRoundParameter;
 
     // round <> highest bid value
-    mapping(uint256 => uint256) highestBidFromRound;
+    mapping(uint256 => uint256) public highestBidFromRound;
 
     // round <> address of the highest bidder
-    mapping(uint256 => address) highestBidderFromRound;
+    mapping(uint256 => address) public highestBidderFromRound;
 
     // round <> whether a TWIST token was successfully minted
-    mapping(uint256 => bool) twistMintedForRound;
+    mapping(uint256 => bool) public twistMintedForRound;
 
     ITwistedAccessControls public accessControls;
     ITwistedTokenCreator public twistedTokenCreator;
@@ -100,8 +100,6 @@ contract TwistedAuction {
         uint256 highestBidAmount = highestBidFromRound[currentRound];
         address highestBidder = highestBidderFromRound[currentRound];
         if (highestBidder != address(0) && highestBidAmount > 0) {
-            require(address(this).balance == highestBidAmount, "Mis-match between account balance and highest bid");
-
             // Clear out highest bidder as there is no longer one
             delete highestBidderFromRound[currentRound];
 
