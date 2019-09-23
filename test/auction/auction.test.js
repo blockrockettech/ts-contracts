@@ -11,7 +11,7 @@ const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissi
 const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
 const TwistedAuction = artifacts.require('TwistedAuctionMock');
 
-contract.only('Twisted Auction Tests', function ([
+contract('Twisted Auction Tests', function ([
                                       creator,
                                       printingFund,
                                       bidder,
@@ -215,7 +215,7 @@ contract.only('Twisted Auction Tests', function ([
     describe('should fail', function () {
         describe('on contract creation', function () {
             it('when start time is in the past', async function() {
-                expectRevert(
+                await expectRevert(
                     TwistedAuction.new(
                         this.accessControls.address,
                         this.token.address,
@@ -231,20 +231,20 @@ contract.only('Twisted Auction Tests', function ([
             it('if the last round has passed', async function () {
                 await this.auction.updateCurrentRound(22, { from: creator });
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('22');
-                expectRevert(
+                await expectRevert(
                     this.auction.bid(4, { value: oneEth, from: bidder }),
                     "Auction has ended"
                 );
             });
             it('if bid is less than min bid', async function () {
-                expectRevert(
+                await expectRevert(
                     this.auction.bid(7, { value: ether('0.005'), from: bidder }),
                     "The bid didn't reach the minimum bid threshold"
                 );
             });
             it('if bid was not higher than last', async function () {
                 await this.auction.bid(1, { value: oneEth, from: bidder });
-                expectRevert(
+                await expectRevert(
                     this.auction.bid(4, { value: halfEth, from: anotherBidder }),
                     "The bid was not higher than the last"
                 );
@@ -253,7 +253,7 @@ contract.only('Twisted Auction Tests', function ([
                 const newAuctionStartTime = new BN((now() + 50).toString());
                 await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
                 expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
-                expectRevert(
+                await expectRevert(
                     this.auction.bid(4, { value: oneEth, from: bidder }),
                     "This round's bidding window is not open"
                 );
@@ -261,7 +261,7 @@ contract.only('Twisted Auction Tests', function ([
         });
         describe('when issuing the TWIST and prepping the next round', function () {
             it('if the current round is still active', async function () {
-                expectRevert(
+                await expectRevert(
                   this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
                     "Current round still active"
                 );
@@ -269,7 +269,7 @@ contract.only('Twisted Auction Tests', function ([
             it('if no one has bid', async function () {
                 await this.auction.updateRoundLength(0, { from: creator });
                 expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
-                expectRevert(
+                await expectRevert(
                     this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
                     "No one has bid"
                 );
