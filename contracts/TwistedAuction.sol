@@ -29,6 +29,7 @@ contract TwistedAuction {
     );
 
     address payable printingFund;
+    address payable auctionOwner;
 
     uint256 public auctionStartTime;
 
@@ -67,6 +68,7 @@ contract TwistedAuction {
         auctionFundSplitter = _auctionFundSplitter;
         printingFund = _printingFund;
         auctionStartTime = _auctionStartTime;
+        auctionOwner = msg.sender;
     }
 
     function _isWithinBiddingWindowForRound() internal view returns (bool) {
@@ -121,12 +123,15 @@ contract TwistedAuction {
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
         require(!_isWithinBiddingWindowForRound(), "Current round still active");
-        require(highestBidFromRound[currentRound] > 0 && highestBidderFromRound[currentRound] != address(0), "No one has bid");
 
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
 
         // Issue the TWIST
+        if (highestBidderFromRound[previousRound] == address(0)) {
+            highestBidderFromRound[previousRound] = auctionOwner;
+        }
+
         address winner = highestBidderFromRound[previousRound];
         uint256 winningRoundParam = winningRoundParameter[previousRound];
         uint256 tokenId = twistedTokenCreator.createTwisted(previousRound, winningRoundParam, _ipfsHash, winner);

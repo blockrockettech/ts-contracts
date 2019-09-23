@@ -207,6 +207,28 @@ contract('Twisted Auction Tests', function ([
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
             });
 
+            it('should issue to the auction owner if no bids have been received', async function () {
+                await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
+
+                await this.auction.updateRoundLength(0, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
+
+                const newAuctionStartTime = (await this.auction.auctionStartTime()).sub(new BN('86400'));
+                await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
+                expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
+
+                expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
+
+                await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
+                expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
+
+                expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
+                expect(await this.auction.highestBidderFromRound(2)).to.be.equal(creator);
+                expect(await this.token.ownerOf(1)).to.be.equal(bidder);
+                expect(await this.token.ownerOf(2)).to.be.equal(creator);
+            });
+
             it('should successfully update the number of rounds if required', async function () {
                 await this.auction.updateNumberOfRounds(25, { from: creator });
                 expect(await this.auction.numOfRounds()).to.be.bignumber.equal('25');
@@ -268,14 +290,14 @@ contract('Twisted Auction Tests', function ([
                     "Current round still active"
                 );
             });
-            it('if no one has bid', async function () {
+            /*it('if no one has bid', async function () {
                 await this.auction.updateRoundLength(0, { from: creator });
                 expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
                 await expectRevert(
                     this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
                     "No one has bid"
                 );
-            });
+            });*/
             it('if caller is not whitelisted', async function () {
                await expectRevert(
                    this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: random }),
