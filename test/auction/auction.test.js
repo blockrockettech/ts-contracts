@@ -16,6 +16,7 @@ contract('Twisted Auction Tests', function ([
                                       printingFund,
                                       bidder,
                                       anotherBidder,
+                                      random,
                                       ...accounts
                                   ]) {
     const baseURI = "ipfs/";
@@ -49,6 +50,7 @@ contract('Twisted Auction Tests', function ([
         this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
 
         this.artistCommissionRegistry = await TwistedArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
+        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         const {
             _percentages,
@@ -273,6 +275,23 @@ contract('Twisted Auction Tests', function ([
                     this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
                     "No one has bid"
                 );
+            });
+            it('if caller is not whitelisted', async function () {
+               await expectRevert(
+                   this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: random }),
+                   "Caller not whitelisted"
+               );
+            });
+        });
+        describe('when updating auction params', function () {
+            it('if new number of rounds is smaller than the current round', async function () {
+                await expectRevert(
+                    this.auction.updateNumberOfRounds(0, { from: creator }),
+                    "Number of rounds can't be smaller than the number of previous"
+                );
+            });
+            it('if new round length is longer than a day', async function () {
+               await expectRevert.unspecified(this.auction.updateRoundLength(86500, { from: creator }));
             });
         });
     });
