@@ -1,3 +1,8 @@
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+
+const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
+const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
+
 const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
@@ -5,12 +10,20 @@ const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter
 const TwistedAuctionMock = artifacts.require('TwistedAuctionMock');
 const TwistedAuction = artifacts.require('TwistedAuction');
 
+function getAccountAddress(accounts, index, network) {
+    let addr = accounts[index];
+    if (network === 'ropsten' || network === 'rinkeby') {
+        addr = new HDWalletProvider(MNEMONIC, `https://${network}.infura.io/v3/${INFURA_KEY}`, index).getAddress();
+    }
+    console.log(`Using account [${addr}] for network [${network}]`);
+    return addr;
+}
 function now(){ return Math.floor( Date.now() / 1000 ) }
 module.exports = async function (deployer, network, accounts) {
     console.log("Deploying core contracts to network: " + network);
 
-    const creator = accounts[0];
-    const printingFund = accounts[1];
+    const creator = getAccountAddress(accounts, 0, network);
+    const printingFund = getAccountAddress(accounts, 1, network);
     const baseIPFSURI = 'ipfs.io/ipns/';
 
     await deployer.deploy(TwistedAccessControls, { from: creator });
@@ -29,7 +42,8 @@ module.exports = async function (deployer, network, accounts) {
     const fundSplitter = await TwistedAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
-    if(network.toString() === '1') {
+    if(network.toString() === 'live') {
+        // todo: change to nov 2, 8am for deployment
         const auctionStartTime = now() + 5;
         console.log('auctionStartTime', auctionStartTime);
 
@@ -41,7 +55,7 @@ module.exports = async function (deployer, network, accounts) {
         const auction = await TwistedAuction.deployed();
         console.log('auction.address:', auction.address);
     } else {
-        const auctionStartTime = now() + 5;
+        const auctionStartTime = now() + 600; // start in 10 mins
         console.log('auctionStartTime', auctionStartTime);
 
         // Deploy mock contract to test net

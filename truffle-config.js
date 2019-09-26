@@ -51,8 +51,8 @@ module.exports = {
             },
             network_id: 3,
             gas: 7000000, // default = 4712388
-            gasPrice: 100000000000, // default = 100 gwei = 100000000000
-            skipDryRun: false
+            gasPrice: 25000000000, // 25 Gwei. default = 100 gwei = 100000000000
+            skipDryRun: true
         },
         live: {
             provider: function () {
