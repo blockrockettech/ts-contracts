@@ -11,6 +11,7 @@ contract TwistedAuction {
 
     event BidAccepted(
         uint256 indexed _round,
+        uint256 _timeStamp,
         uint256 _param,
         uint256 _amount,
         address indexed _bidder
@@ -118,7 +119,7 @@ contract TwistedAuction {
         highestBidFromRound[currentRound] = msg.value;
         highestBidderFromRound[currentRound] = msg.sender;
         winningRoundParameter[currentRound] = _parameter;
-        emit BidAccepted(currentRound, winningRoundParameter[currentRound], highestBidFromRound[currentRound], highestBidderFromRound[currentRound]);
+        emit BidAccepted(currentRound, now, winningRoundParameter[currentRound], highestBidFromRound[currentRound], highestBidderFromRound[currentRound]);
     }
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {

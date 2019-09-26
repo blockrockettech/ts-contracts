@@ -30,17 +30,23 @@ module.exports = async function (deployer, network, accounts) {
     console.log('fundSplitter.address', fundSplitter.address);
 
     if(network.toString() === '1') {
+        const auctionStartTime = now() + 5;
+        console.log('auctionStartTime', auctionStartTime);
+
         await deployer.deploy(TwistedAuction,
-            controls.address, token.address, fundSplitter.address, printingFund, now() + 5,
+            controls.address, token.address, fundSplitter.address, printingFund, auctionStartTime,
             {
                 from: creator
             });
         const auction = await TwistedAuction.deployed();
         console.log('auction.address:', auction.address);
     } else {
+        const auctionStartTime = now() + 5;
+        console.log('auctionStartTime', auctionStartTime);
+
         // Deploy mock contract to test net
         await deployer.deploy(TwistedAuctionMock,
-            controls.address, token.address, fundSplitter.address, printingFund, now() + 5,
+            controls.address, token.address, fundSplitter.address, printingFund, auctionStartTime,
             {
                 from: creator
             });
