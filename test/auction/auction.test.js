@@ -41,7 +41,6 @@ contract('Twisted Auction Tests', function ([
     const oneHalfEth = ether('1.5');
 
     function now(){ return Math.floor( Date.now() / 1000 ) }
-    function sleep(ms) {return new Promise(resolve => setTimeout(resolve, ms));}
 
     beforeEach(async function () {
         this.accessControls = await TwistedAccessControls.new({ from: creator });
@@ -135,15 +134,24 @@ contract('Twisted Auction Tests', function ([
             });
 
             it('should issue the TWIST at the end of a round', async function () {
-                ({ logs: this.logs } = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
+                ({logs: this.logs} = await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }));
 
                 const expectedTokenId = new BN('1');
-                expectEvent.inLogs(this.logs, 'RoundFinalised', {
-                    _round: new BN('1'),
-                    _nextRound: new BN('2'),
-                    _issuedTokenId: expectedTokenId
+                let requiredEventFoundInLogs = false;
+                this.logs.forEach((log) => {
+                    if(log.event === 'RoundFinalised') {
+                        const eventArgs = log.args;
+                        expect(eventArgs._round).to.be.bignumber.equal(expectedTokenId);
+                        expect(eventArgs._timestamp).to.exist;
+                        expect(eventArgs._param).to.be.bignumber.equal(new BN('3'));
+                        expect(eventArgs._highestBid).to.be.bignumber.equal(oneEth);
+                        expect(eventArgs._highestBidder).to.be.equal(bidder);
+
+                        requiredEventFoundInLogs = true;
+                    }
                 });
 
+                expect(requiredEventFoundInLogs).to.be.true;
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('2');
                 expect(await this.token.tokenOfOwnerByIndex(bidder, 0)).to.be.bignumber.equal(expectedTokenId);
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
