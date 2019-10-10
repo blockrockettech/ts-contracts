@@ -36,7 +36,7 @@ contract TwistedAuction {
 
     uint256 public auctionStartTime;
 
-    uint256 public minBid = 0.01 ether;
+    uint256 public minBid = 0.02 ether;
     uint256 public currentRound = 1;
     uint256 public numOfRounds = 21;
     uint256 public roundLengthInSeconds = 0.5 days;
