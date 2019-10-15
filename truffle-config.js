@@ -46,6 +46,15 @@ module.exports = {
             gas: 0xfffffffffff, // <-- Use this high gas value
             gasPrice: 0x01      // <-- Use this low gas price
         },
+        rinkeby: {
+            provider: function () {
+                return new HDWalletProvider(MNEMONIC, `https://rinkeby.infura.io/v3/${INFURA_KEY}`);
+            },
+            network_id: 4,
+            gas: 6000000,
+            gasPrice: 25000000000, // 25 Gwei. default = 100 gwei = 100000000000
+            skipDryRun: true
+        },
         ropsten: {
             provider: function () {
                 return new HDWalletProvider(MNEMONIC, `https://ropsten.infura.io/v3/${INFURA_KEY}`);

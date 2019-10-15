@@ -38,6 +38,7 @@ contract('Twisted Auction Tests', function ([
 
     const halfEth = ether('0.5');
     const oneEth = ether('1');
+    const justOverOneEth = ether('1.01');
     const oneHalfEth = ether('1.5');
 
     function now(){ return Math.floor( Date.now() / 1000 ) }
@@ -278,6 +279,13 @@ contract('Twisted Auction Tests', function ([
                 await this.auction.bid(1, { value: oneEth, from: bidder });
                 await expectRevert(
                     this.auction.bid(4, { value: halfEth, from: anotherBidder }),
+                    "The bid was not higher than the last"
+                );
+            });
+            it('if bid was not at least 0.02 higher than last', async function () {
+                await this.auction.bid(1, { value: oneEth, from: bidder });
+                await expectRevert(
+                    this.auction.bid(4, { value: justOverOneEth, from: anotherBidder }),
                     "The bid was not higher than the last"
                 );
             });

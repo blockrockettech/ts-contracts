@@ -85,7 +85,7 @@ contract TwistedAuction {
     function _isBidValid(uint256 _bidValue) internal view {
         require(currentRound <= numOfRounds, "Auction has ended");
         require(_bidValue >= minBid, "The bid didn't reach the minimum bid threshold");
-        require(_bidValue > highestBidFromRound[currentRound], "The bid was not higher than the last");
+        require(_bidValue > highestBidFromRound[currentRound].add(minBid), "The bid was not higher than the last");
         require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
     }
 

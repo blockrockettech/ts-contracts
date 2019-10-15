@@ -1,4 +1,4 @@
-const HDWalletProvider = require('@truffle/hdwallet-provider');
+const { getAccountAddress } = require('@blockrocket/utils');
 
 const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
 const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
@@ -10,21 +10,13 @@ const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter
 const TwistedAuctionMock = artifacts.require('TwistedAuctionMock');
 const TwistedAuction = artifacts.require('TwistedAuction');
 
-function getAccountAddress(accounts, index, network) {
-    let addr = accounts[index];
-    if (network === 'ropsten' || network === 'rinkeby') {
-        addr = new HDWalletProvider(MNEMONIC, `https://${network}.infura.io/v3/${INFURA_KEY}`, index).getAddress();
-    }
-    console.log(`Using account [${addr}] for network [${network}]`);
-    return addr;
-}
 function now(){ return Math.floor( Date.now() / 1000 ) }
 module.exports = async function (deployer, network, accounts) {
     console.log("Deploying core contracts to network: " + network);
 
-    const creator = getAccountAddress(accounts, 0, network);
-    const printingFund = getAccountAddress(accounts, 1, network);
-    const baseIPFSURI = 'ipfs.io/ipns/';
+    const creator = getAccountAddress(accounts, 0, network, MNEMONIC, INFURA_KEY);
+    const printingFund = getAccountAddress(accounts, 1, network, MNEMONIC, INFURA_KEY);
+    const baseIPFSURI = 'https://ipfs.infura.io/ipfs/';
 
     await deployer.deploy(TwistedAccessControls, { from: creator });
     const controls = await TwistedAccessControls.deployed();
@@ -44,7 +36,7 @@ module.exports = async function (deployer, network, accounts) {
 
     if(network.toString() === 'live') {
         // todo: change to nov 2, 8am for deployment
-        const auctionStartTime = now() + 5;
+        const auctionStartTime = now() - 5;
         console.log('auctionStartTime', auctionStartTime);
 
         await deployer.deploy(TwistedAuction,
