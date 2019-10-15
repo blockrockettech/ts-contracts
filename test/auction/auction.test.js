@@ -13,6 +13,7 @@ const TwistedAuction = artifacts.require('TwistedAuctionMock');
 
 contract('Twisted Auction Tests', function ([
                                       creator,
+                                      auctionOwner,
                                       printingFund,
                                       bidder,
                                       anotherBidder,
@@ -36,6 +37,7 @@ contract('Twisted Auction Tests', function ([
         ]
     };
 
+    const minBid = ether('0.02');
     const halfEth = ether('0.5');
     const oneEth = ether('1');
     const justOverOneEth = ether('1.01');
@@ -66,6 +68,7 @@ contract('Twisted Auction Tests', function ([
             this.token.address,
             this.auctionFundSplitter.address,
             printingFund,
+            auctionOwner,
             now() + 2
         );
 
@@ -96,6 +99,17 @@ contract('Twisted Auction Tests', function ([
                 expect(await this.auction.highestBidderFromRound(1)).to.be.equal(bidder);
                 expect(await auctionContractBalance.delta()).to.be.bignumber.equal(oneEth);
                 expect(await bidderBalance.delta()).to.be.bignumber.equal(oneEth.add(gasSpent(this.receipt)).mul(new BN('-1')));
+            });
+
+            it('should accept the min bid', async function () {
+                const param = new BN('4');
+                ({ logs: this.logs, receipt: this.receipt} = await this.auction.bid(param, { value: minBid, from: bidder }));
+                expectEvent.inLogs(this.logs, 'BidAccepted', {
+                    _round: new BN('1'),
+                    _param: param,
+                    _amount: minBid,
+                    _bidder: bidder
+                });
             });
 
             it('should refund last bid if has been outbid', async function () {
@@ -233,9 +247,9 @@ contract('Twisted Auction Tests', function ([
                 expect(await this.auction.currentRound()).to.be.bignumber.equal('3');
 
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
-                expect(await this.auction.highestBidderFromRound(2)).to.be.equal(creator);
+                expect(await this.auction.highestBidderFromRound(2)).to.be.equal(auctionOwner);
                 expect(await this.token.ownerOf(1)).to.be.equal(bidder);
-                expect(await this.token.ownerOf(2)).to.be.equal(creator);
+                expect(await this.token.ownerOf(2)).to.be.equal(auctionOwner);
             });
 
             it('should successfully update the number of rounds if required', async function () {
@@ -254,6 +268,7 @@ contract('Twisted Auction Tests', function ([
                         this.token.address,
                         this.auctionFundSplitter.address,
                         printingFund,
+                        auctionOwner,
                         now() - 1
                     ),
                     "Auction start time is not in the future"

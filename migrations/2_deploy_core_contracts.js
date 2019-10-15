@@ -15,7 +15,8 @@ module.exports = async function (deployer, network, accounts) {
     console.log("Deploying core contracts to network: " + network);
 
     const creator = getAccountAddress(accounts, 0, network, MNEMONIC, INFURA_KEY);
-    const printingFund = getAccountAddress(accounts, 1, network, MNEMONIC, INFURA_KEY);
+    const auctionOwner = '0x7Edf95DEA126e5EF4Fc2FcFFc83C6Bbde82d5C54'; // no bid address
+    const printingFund = '0xB2d3097580b5D1a5e352Ec9fC96566D792bc67d4';
     const baseIPFSURI = 'https://ipfs.infura.io/ipfs/';
 
     await deployer.deploy(TwistedAccessControls, { from: creator });
@@ -40,7 +41,7 @@ module.exports = async function (deployer, network, accounts) {
         console.log('auctionStartTime', auctionStartTime);
 
         await deployer.deploy(TwistedAuction,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionStartTime,
+            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
             {
                 from: creator
             });
@@ -52,7 +53,7 @@ module.exports = async function (deployer, network, accounts) {
 
         // Deploy mock contract to test net
         await deployer.deploy(TwistedAuctionMock,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionStartTime,
+            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
             {
                 from: creator
             });

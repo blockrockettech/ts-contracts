@@ -2,7 +2,7 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
 const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
-const ETHERSCAN_KEY = process.env.TWISTED_SISTERS_ETHERSCAN_KEY || '';
+const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY || '';
 
 module.exports = {
     // N.B - this seems to crash solidity-coverage so its disabled

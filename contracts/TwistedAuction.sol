@@ -64,6 +64,7 @@ contract TwistedAuction {
                 ITwistedTokenCreator _twistedTokenCreator,
                 TwistedAuctionFundSplitter _auctionFundSplitter,
                 address payable _printingFund,
+                address payable _auctionOwner,
                 uint256 _auctionStartTime) public {
         require(now < _auctionStartTime, "Auction start time is not in the future");
         accessControls = _accessControls;
@@ -71,7 +72,7 @@ contract TwistedAuction {
         auctionFundSplitter = _auctionFundSplitter;
         printingFund = _printingFund;
         auctionStartTime = _auctionStartTime;
-        auctionOwner = msg.sender;
+        auctionOwner = _auctionOwner;
     }
 
     function _isWithinBiddingWindowForRound() internal view returns (bool) {
@@ -85,7 +86,7 @@ contract TwistedAuction {
     function _isBidValid(uint256 _bidValue) internal view {
         require(currentRound <= numOfRounds, "Auction has ended");
         require(_bidValue >= minBid, "The bid didn't reach the minimum bid threshold");
-        require(_bidValue > highestBidFromRound[currentRound].add(minBid), "The bid was not higher than the last");
+        require(_bidValue >= highestBidFromRound[currentRound].add(minBid), "The bid was not higher than the last");
         require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
     }
 
