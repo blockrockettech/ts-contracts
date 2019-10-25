@@ -206,6 +206,17 @@ function shouldBehaveLikeERC721 (
                         );
                     });
                 });
+
+                context('when transfers are not yet permitted', function() {
+                   it('reverts', async function() {
+                       function now(){ return Math.floor( Date.now() / 1000 ) }
+                       await this.token.updateTransfersEnabledFrom(now() + 5000);
+                       await expectRevert(
+                           transferFunction.call(this, owner, owner, tokenId, { from: owner }),
+                           "Transfers are currently disabled"
+                       );
+                   });
+                });
             };
 
             describe('via transferFrom', function () {
