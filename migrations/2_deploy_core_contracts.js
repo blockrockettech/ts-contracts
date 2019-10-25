@@ -22,7 +22,8 @@ module.exports = async function (deployer, network, accounts) {
     const controls = await TwistedAccessControls.deployed();
     console.log('controls.address:', controls.address);
 
-    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, { from: creator });
+    //todo: need to define the transfer from timestamp before launch as this will enable transfers from day 1
+    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, 0, { from: creator });
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);
 

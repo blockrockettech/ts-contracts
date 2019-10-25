@@ -27,6 +27,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
     }
 
     uint256 public tokenIdPointer = 0;
+    uint256 public transfersEnabledFrom;
 
     mapping(uint256 => Twist) internal twists;
 
@@ -40,9 +41,11 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         _;
     }
 
-    constructor (string memory _tokenBaseURI, ITwistedAccessControls _accessControls) public CustomERC721Full("Twisted", "TWIST") {
+    constructor (string memory _tokenBaseURI, ITwistedAccessControls _accessControls, uint256 _transfersEnabledFrom)
+    public CustomERC721Full("Twisted", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
+        transfersEnabledFrom = _transfersEnabledFrom;
     }
 
     function createTwisted(
@@ -89,12 +92,32 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         return _tokensOfOwner(owner);
     }
 
+    function transferFrom(address from, address to, uint256 tokenId) public {
+        require(now > transfersEnabledFrom, "Transfers are currently disabled");
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public {
+        transferFrom(from, to, tokenId);
+        require(_checkOnERC721Received(from, to, tokenId, _data), "ERC721: transfer to non ERC721Receiver implementer");
+    }
+
+    //todo: write unit tests
+    function updateTransfersEnabledFrom(uint256 _transfersEnabledFrom) external isWhitelisted {
+        transfersEnabledFrom = _transfersEnabledFrom;
+    }
+
     function updateTokenBaseURI(string calldata _newBaseURI) external isWhitelisted {
         require(bytes(_newBaseURI).length != 0, "Base URI invalid");
         tokenBaseURI = _newBaseURI;
     }
 
-    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external isWhitelisted onlyWhenTokenExists(_tokenId) {
+    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash)
+    external isWhitelisted onlyWhenTokenExists(_tokenId) {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
         twists[_tokenId].ipfsHash = _newIpfsHash;
     }

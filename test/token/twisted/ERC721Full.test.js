@@ -39,7 +39,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, { from: creator });
     });
 
     describe('like a full ERC721', function () {
