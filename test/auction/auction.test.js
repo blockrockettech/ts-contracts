@@ -4,13 +4,13 @@ const gasSpent = require('../gas-spent-helper');
 
 const {expect} = require('chai');
 
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
-const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuction = artifacts.require('TwistedAuction');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
 
-contract.skip('Twisted Auction Tests', function ([
+contract('Twisted Auction Tests', function ([
                                       creator,
                                       auctionOwner,
                                       printingFund,
@@ -45,12 +45,12 @@ contract.skip('Twisted Auction Tests', function ([
     function now(){ return Math.floor( Date.now() / 1000 ) }
 
     beforeEach(async function () {
-        this.accessControls = await TwistedAccessControls.new({ from: creator });
+        this.accessControls = await TwistedSisterAccessControls.new({ from: creator });
         expect(await this.accessControls.isWhitelisted(creator)).to.be.true;
 
         this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, { from: creator });
 
-        this.artistCommissionRegistry = await TwistedArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
+        this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         const {
@@ -60,9 +60,9 @@ contract.skip('Twisted Auction Tests', function ([
         expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
         expect(_artists).to.be.deep.equal(commission.artists);
 
-        this.auctionFundSplitter = await TwistedAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+        this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
 
-        this.auction = await TwistedAuction.new(
+        this.auction = await TwistedSisterAuction.new(
             this.accessControls.address,
             this.token.address,
             this.auctionFundSplitter.address,
@@ -263,7 +263,7 @@ contract.skip('Twisted Auction Tests', function ([
         describe('on contract creation', function () {
             it('when start time is in the past', async function() {
                 await expectRevert(
-                    TwistedAuction.new(
+                    TwistedSisterAuction.new(
                         this.accessControls.address,
                         this.token.address,
                         this.auctionFundSplitter.address,

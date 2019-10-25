@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-contract ITwistedTokenCreator {
+contract ITwistedSisterTokenCreator {
     function createTwisted(
         uint256 _round,
         uint256 _parameter,

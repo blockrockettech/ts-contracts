@@ -4,14 +4,14 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../libs/Strings.sol";
 import "../interfaces/erc721/CustomERC721Full.sol";
-import "../interfaces/ITwistedTokenCreator.sol";
-import "../interfaces/ITwistedAccessControls.sol";
+import "../interfaces/ITwistedSisterTokenCreator.sol";
+import "../interfaces/ITwistedSisterAccessControls.sol";
 
 
-contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
+contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
     using SafeMath for uint256;
 
-    ITwistedAccessControls public accessControls;
+    ITwistedSisterAccessControls public accessControls;
 
     string public tokenBaseURI = "";
 
@@ -41,7 +41,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         _;
     }
 
-    constructor (string memory _tokenBaseURI, ITwistedAccessControls _accessControls, uint256 _transfersEnabledFrom)
+    constructor (string memory _tokenBaseURI, ITwistedSisterAccessControls _accessControls, uint256 _transfersEnabledFrom)
     public CustomERC721Full("Twisted", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;

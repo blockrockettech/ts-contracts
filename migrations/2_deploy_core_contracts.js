@@ -1,13 +1,13 @@
 const { getAccountAddress } = require('@blockrocket/utils');
 
-const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
-const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
+const MNEMONIC = process.env.TwistedSister_SISTERS_MNEMONIC || '';
+const INFURA_KEY = process.env.TwistedSister_SISTERS_INFURA_KEY || '';
 
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
-const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuction = artifacts.require('TwistedAuction');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
 
 function now(){ return Math.floor( Date.now() / 1000 ) }
 
@@ -19,8 +19,8 @@ module.exports = async function (deployer, network, accounts) {
     const printingFund = '0xB2d3097580b5D1a5e352Ec9fC96566D792bc67d4';
     const baseIPFSURI = 'https://ipfs.infura.io/ipfs/';
 
-    await deployer.deploy(TwistedAccessControls, { from: creator });
-    const controls = await TwistedAccessControls.deployed();
+    await deployer.deploy(TwistedSisterAccessControls, { from: creator });
+    const controls = await TwistedSisterAccessControls.deployed();
     console.log('controls.address:', controls.address);
 
     //todo: need to define the transfer from timestamp before launch as this will enable transfers from day 1
@@ -28,12 +28,12 @@ module.exports = async function (deployer, network, accounts) {
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);
 
-    await deployer.deploy(TwistedArtistCommissionRegistry, controls.address, { from: creator });
-    const registry = await TwistedArtistCommissionRegistry.deployed();
+    await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, { from: creator });
+    const registry = await TwistedSisterArtistCommissionRegistry.deployed();
     console.log('registry.address:', registry.address);
 
-    await deployer.deploy(TwistedAuctionFundSplitter, registry.address, { from: creator });
-    const fundSplitter = await TwistedAuctionFundSplitter.deployed();
+    await deployer.deploy(TwistedSisterAuctionFundSplitter, registry.address, { from: creator });
+    const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
     // todo: change to nov 2, 9am CET for deployment
@@ -41,11 +41,11 @@ module.exports = async function (deployer, network, accounts) {
     console.log('auctionStartTime', auctionStartTime);
 
     // Deploy mock contract to test net
-    await deployer.deploy(TwistedAuction,
+    await deployer.deploy(TwistedSisterAuction,
         controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
         {
             from: creator
         });
-    const auction = await TwistedAuction.deployed();
+    const auction = await TwistedSisterAuction.deployed();
     console.log('auction.address:', auction.address);
 };

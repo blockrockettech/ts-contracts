@@ -2,11 +2,11 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/ITwistedAccessControls.sol";
-import "./interfaces/ITwistedTokenCreator.sol";
-import "./splitters/TwistedAuctionFundSplitter.sol";
+import "./interfaces/ITwistedSisterAccessControls.sol";
+import "./interfaces/ITwistedSisterTokenCreator.sol";
+import "./splitters/TwistedSisterAuctionFundSplitter.sol";
 
-contract TwistedAuction {
+contract TwistedSisterAuction {
     using SafeMath for uint256;
 
     event BidAccepted(
@@ -51,18 +51,18 @@ contract TwistedAuction {
     // round <> address of the highest bidder
     mapping(uint256 => address) public highestBidderFromRound;
 
-    ITwistedAccessControls public accessControls;
-    ITwistedTokenCreator public twistedTokenCreator;
-    TwistedAuctionFundSplitter public auctionFundSplitter;
+    ITwistedSisterAccessControls public accessControls;
+    ITwistedSisterTokenCreator public twistedTokenCreator;
+    TwistedSisterAuctionFundSplitter public auctionFundSplitter;
 
     modifier isWhitelisted() {
         require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
         _;
     }
 
-    constructor(ITwistedAccessControls _accessControls,
-                ITwistedTokenCreator _twistedTokenCreator,
-                TwistedAuctionFundSplitter _auctionFundSplitter,
+    constructor(ITwistedSisterAccessControls _accessControls,
+                ITwistedSisterTokenCreator _twistedTokenCreator,
+                TwistedSisterAuctionFundSplitter _auctionFundSplitter,
                 address payable _printingFund,
                 address payable _auctionOwner,
                 uint256 _auctionStartTime) public {
@@ -135,7 +135,7 @@ contract TwistedAuction {
         // Handle no-bid scenario
         if (highestBidderFromRound[previousRound] == address(0)) {
             highestBidderFromRound[previousRound] = auctionOwner;
-            winningRoundParameter[previousRound] = 1;
+            winningRoundParameter[previousRound] = 1; // 1 is the default and first param (1...64)
         }
 
         // Issue the TWIST

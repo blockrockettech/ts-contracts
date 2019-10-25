@@ -7,7 +7,7 @@ const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 const should = require('chai').should();
 
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([
                                                                   creator,
@@ -34,7 +34,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
     ] = accounts;
 
     beforeEach(async function () {
-        this.accessControls = await TwistedAccessControls.new({from: creator});
+        this.accessControls = await TwistedSisterAccessControls.new({from: creator});
         await this.accessControls.addWhitelisted(minter, {from: creator});
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
@@ -231,7 +231,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             });
         });
 
-        describe.only('transferFrom with timelock', function () {
+        describe('transferFrom with timelock', function () {
 
             function now() { return Math.floor(Date.now() / 1000); }
 

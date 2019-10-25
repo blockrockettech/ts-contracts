@@ -2,9 +2,9 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
 
-import "./interfaces/ITwistedAccessControls.sol";
+import "./interfaces/ITwistedSisterAccessControls.sol";
 
-contract TwistedAccessControls is ITwistedAccessControls, WhitelistedRole {
+contract TwistedSisterAccessControls is ITwistedSisterAccessControls, WhitelistedRole {
     constructor () public {
         super.addWhitelisted(msg.sender);
     }
