@@ -10,6 +10,7 @@ const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter
 const TwistedAuction = artifacts.require('TwistedAuction');
 
 function now(){ return Math.floor( Date.now() / 1000 ) }
+
 module.exports = async function (deployer, network, accounts) {
     console.log("Deploying core contracts to network: " + network);
 

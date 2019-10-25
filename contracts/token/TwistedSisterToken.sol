@@ -97,15 +97,6 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         super.transferFrom(from, to, tokenId);
     }
 
-    function safeTransferFrom(address from, address to, uint256 tokenId) public {
-        safeTransferFrom(from, to, tokenId, "");
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public {
-        transferFrom(from, to, tokenId);
-        require(_checkOnERC721Received(from, to, tokenId, _data), "ERC721: transfer to non ERC721Receiver implementer");
-    }
-
     //todo: write unit tests
     function updateTransfersEnabledFrom(uint256 _transfersEnabledFrom) external isWhitelisted {
         transfersEnabledFrom = _transfersEnabledFrom;
@@ -116,8 +107,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         tokenBaseURI = _newBaseURI;
     }
 
-    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash)
-    external isWhitelisted onlyWhenTokenExists(_tokenId) {
+    function updateIpfsHash(uint256 _tokenId, string calldata _newIpfsHash) external isWhitelisted onlyWhenTokenExists(_tokenId) {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
         twists[_tokenId].ipfsHash = _newIpfsHash;
     }
