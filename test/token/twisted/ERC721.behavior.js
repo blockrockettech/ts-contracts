@@ -211,7 +211,7 @@ function shouldBehaveLikeERC721(
                     it('reverts', async function () {
                         function now() { return Math.floor(Date.now() / 1000); }
 
-                        await this.token.updateTransfersEnabledFrom(now() + 50000000);
+                        await this.token.updateTransfersEnabledFrom(now() + 60000); // 100 hours
                         await expectRevert(
                             transferFunction.call(this, owner, owner, tokenId, {from: owner}),
                             'Transfers are currently disabled'

@@ -254,8 +254,17 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             });
 
             it('should transfer with transferFrom as past timelock', async function () {
-                await time.increase(time.duration.years(1));
+                await time.increase(time.duration.hours(3));
                 await timelockedToken.safeTransferFrom(minter, newOwner, 1, {from: minter});
+            });
+
+            it('reverts when trying to update the base token URI from an unauthorised address', async function () {
+                await expectRevert.unspecified(this.token.updateTransfersEnabledFrom(0, {from: another}));
+            });
+
+            it('reverts when trying to update the base token URI from an unauthorised address', async function () {
+                await this.token.updateTransfersEnabledFrom(6, {from: minter});
+                (await this.token.transfersEnabledFrom()).should.be.bignumber.equal('6');
             });
         });
     });

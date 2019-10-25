@@ -97,7 +97,6 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         super.transferFrom(from, to, tokenId);
     }
 
-    //todo: write unit tests
     function updateTransfersEnabledFrom(uint256 _transfersEnabledFrom) external isWhitelisted {
         transfersEnabledFrom = _transfersEnabledFrom;
     }
