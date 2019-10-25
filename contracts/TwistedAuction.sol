@@ -117,6 +117,7 @@ contract TwistedAuction {
     }
 
     function bid(uint256 _parameter) external payable {
+        require(_parameter > 0, "The parameter cannot be zero");
         _isBidValid(msg.value);
         _refundHighestBidder();
         highestBidFromRound[currentRound] = msg.value;
@@ -131,11 +132,13 @@ contract TwistedAuction {
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
 
-        // Issue the TWIST
+        // Handle no-bid scenario
         if (highestBidderFromRound[previousRound] == address(0)) {
             highestBidderFromRound[previousRound] = auctionOwner;
+            winningRoundParameter[previousRound] = 1;
         }
 
+        // Issue the TWIST
         address winner = highestBidderFromRound[previousRound];
         uint256 winningRoundParam = winningRoundParameter[previousRound];
         uint256 tokenId = twistedTokenCreator.createTwisted(previousRound, winningRoundParam, _ipfsHash, winner);
@@ -145,6 +148,10 @@ contract TwistedAuction {
         _splitFundsFromHighestBid();
 
         emit RoundFinalised(previousRound, now, winningRoundParam, highestBidFromRound[previousRound], winner);
+    }
+
+    function updateAuctionStartTime(uint256 _auctionStartTime) external isWhitelisted {
+        auctionStartTime = _auctionStartTime;
     }
 
     function updateNumberOfRounds(uint256 _numOfRounds) external isWhitelisted {

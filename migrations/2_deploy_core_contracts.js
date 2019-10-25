@@ -7,7 +7,6 @@ const TwistedAccessControls = artifacts.require('TwistedAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
 const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuctionMock = artifacts.require('TwistedAuctionMock');
 const TwistedAuction = artifacts.require('TwistedAuction');
 
 function now(){ return Math.floor( Date.now() / 1000 ) }
@@ -35,29 +34,16 @@ module.exports = async function (deployer, network, accounts) {
     const fundSplitter = await TwistedAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
-    if(network.toString() === 'live') {
-        // todo: change to nov 2, 8am for deployment
-        const auctionStartTime = now() - 5;
-        console.log('auctionStartTime', auctionStartTime);
+    // todo: change to nov 2, 9am CET for deployment
+    const auctionStartTime = now() + 600; // start in 10 mins
+    console.log('auctionStartTime', auctionStartTime);
 
-        await deployer.deploy(TwistedAuction,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
-            {
-                from: creator
-            });
-        const auction = await TwistedAuction.deployed();
-        console.log('auction.address:', auction.address);
-    } else {
-        const auctionStartTime = now() + 600; // start in 10 mins
-        console.log('auctionStartTime', auctionStartTime);
-
-        // Deploy mock contract to test net
-        await deployer.deploy(TwistedAuctionMock,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
-            {
-                from: creator
-            });
-        const auction = await TwistedAuctionMock.deployed();
-        console.log('auction.address:', auction.address);
-    }
+    // Deploy mock contract to test net
+    await deployer.deploy(TwistedAuction,
+        controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
+        {
+            from: creator
+        });
+    const auction = await TwistedAuction.deployed();
+    console.log('auction.address:', auction.address);
 };
