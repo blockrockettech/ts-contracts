@@ -1,19 +1,19 @@
-const { BN, constants, expectEvent, expectRevert } = require('openzeppelin-test-helpers');
-const { ZERO_ADDRESS } = constants;
+const {BN, constants, expectEvent, expectRevert, time} = require('openzeppelin-test-helpers');
+const {ZERO_ADDRESS} = constants;
 
-const { shouldBehaveLikeERC721 } = require('./ERC721.behavior');
-const { shouldSupportInterfaces } = require('../SupportsInterface.behavior');
+const {shouldBehaveLikeERC721} = require('./ERC721.behavior');
+const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 
 const should = require('chai').should();
 
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([
-                                     creator,
-                                     auction,
-                                     ...accounts
-                                 ]) {
+                                                                  creator,
+                                                                  auction,
+                                                                  ...accounts
+                                                              ]) {
     const name = 'Twisted';
     const symbol = 'TWIST';
     const firstTokenId = new BN(1);
@@ -21,8 +21,8 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
     const thirdTokenId = new BN(3);
     const nonExistentTokenId = new BN(999);
 
-    const baseURI = "ipfs/";
-    const randIPFSHash = "QmRLHatjFTvm3i4ZtZU8KTGsBTsj3bLHLcL8FbdkNobUzm";
+    const baseURI = 'ipfs/';
+    const randIPFSHash = 'QmRLHatjFTvm3i4ZtZU8KTGsBTsj3bLHLcL8FbdkNobUzm';
     const tokenNotFoundRevertReason = 'Token not found for ID';
 
     const minter = auction;
@@ -34,28 +34,28 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
     ] = accounts;
 
     beforeEach(async function () {
-        this.accessControls = await TwistedAccessControls.new({ from: creator });
-        await this.accessControls.addWhitelisted(minter, { from: creator });
+        this.accessControls = await TwistedSisterAccessControls.new({from: creator});
+        await this.accessControls.addWhitelisted(minter, {from: creator});
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, {from: creator});
     });
 
     describe('like a full ERC721', function () {
         beforeEach(async function () {
-            await this.token.createTwisted(0, 1, randIPFSHash, owner, { from: minter });
-            await this.token.createTwisted(1, 2, randIPFSHash, owner, { from: minter });
+            await this.token.createTwisted(0, 1, randIPFSHash, owner, {from: minter});
+            await this.token.createTwisted(1, 2, randIPFSHash, owner, {from: minter});
         });
 
         describe('mint', function () {
             it('reverts with a null destination address', async function () {
-                await expectRevert.unspecified(this.token.createTwisted(0, 0, randIPFSHash, ZERO_ADDRESS, { from: creator }));
+                await expectRevert.unspecified(this.token.createTwisted(0, 0, randIPFSHash, ZERO_ADDRESS, {from: creator}));
             });
 
             context('with minted token', async function () {
                 beforeEach(async function () {
-                    ({ logs: this.logs } = await this.token.createTwisted(2, 3, randIPFSHash, newOwner, { from: minter }));
+                    ({logs: this.logs} = await this.token.createTwisted(2, 3, randIPFSHash, newOwner, {from: minter}));
                 });
 
                 it('emits a Transfer and TwistMinted event', function () {
@@ -129,8 +129,8 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
                 );
             });
 
-            it('reverts when trying to update the base token URI from an unauthorised address', async function() {
-                await expectRevert.unspecified(this.token.updateTokenBaseURI('', { from: another}));
+            it('reverts when trying to update the base token URI from an unauthorised address', async function () {
+                await expectRevert.unspecified(this.token.updateTokenBaseURI('', {from: another}));
             });
 
             it('reverts when updating base uri to a blank string', async function () {
@@ -140,8 +140,8 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
                 );
             });
 
-            it('reverts when trying to update the IPFS hash of a token from an unauthorised address', async function() {
-                await expectRevert.unspecified(this.token.updateIpfsHash(firstTokenId, '', { from: another}));
+            it('reverts when trying to update the IPFS hash of a token from an unauthorised address', async function () {
+                await expectRevert.unspecified(this.token.updateIpfsHash(firstTokenId, '', {from: another}));
             });
 
             it('reverts when updating the IPFS hash of a token to a blank string', async function () {
@@ -199,8 +199,8 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
 
             describe('after transferring all tokens to another user', function () {
                 beforeEach(async function () {
-                    await this.token.transferFrom(owner, another, firstTokenId, { from: owner });
-                    await this.token.transferFrom(owner, another, secondTokenId, { from: owner });
+                    await this.token.transferFrom(owner, another, firstTokenId, {from: owner});
+                    await this.token.transferFrom(owner, another, secondTokenId, {from: owner});
                 });
 
                 it('returns correct token IDs for target', async function () {
@@ -228,6 +228,43 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
 
             it('should revert if index is greater than supply', async function () {
                 await expectRevert.unspecified(this.token.tokenByIndex(2));
+            });
+        });
+
+        describe('transferFrom with timelock', function () {
+
+            function now() { return Math.floor(Date.now() / 1000); }
+
+            let lockedUntil = -1;
+            let timelockedToken =
+            beforeEach(async function () {
+                lockedUntil = now() + 600; // locked for  10 mins
+                timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, {from: creator});
+
+                // create one token
+                await timelockedToken.createTwisted(0, 1, randIPFSHash, minter, {from: minter});
+            });
+
+            it('should revert transferFrom as still timelocked', async function () {
+                await expectRevert.unspecified(timelockedToken.transferFrom(minter, newOwner, 1), {from: minter});
+            });
+
+            it('should revert safeTransferFrom as still timelocked', async function () {
+                await expectRevert.unspecified(timelockedToken.safeTransferFrom(minter, newOwner, 1), {from: minter});
+            });
+
+            it('should transfer with transferFrom as past timelock', async function () {
+                await time.increase(time.duration.hours(3));
+                await timelockedToken.safeTransferFrom(minter, newOwner, 1, {from: minter});
+            });
+
+            it('reverts when trying to update the base token URI from an unauthorised address', async function () {
+                await expectRevert.unspecified(this.token.updateTransfersEnabledFrom(0, {from: another}));
+            });
+
+            it('reverts when trying to update the base token URI from an unauthorised address', async function () {
+                await this.token.updateTransfersEnabledFrom(6, {from: minter});
+                (await this.token.transfersEnabledFrom()).should.be.bignumber.equal('6');
             });
         });
     });

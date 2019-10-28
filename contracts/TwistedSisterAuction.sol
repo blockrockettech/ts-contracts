@@ -2,11 +2,11 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/ITwistedAccessControls.sol";
-import "./interfaces/ITwistedTokenCreator.sol";
-import "./splitters/TwistedAuctionFundSplitter.sol";
+import "./interfaces/ITwistedSisterAccessControls.sol";
+import "./interfaces/ITwistedSisterTokenCreator.sol";
+import "./splitters/TwistedSisterAuctionFundSplitter.sol";
 
-contract TwistedAuction {
+contract TwistedSisterAuction {
     using SafeMath for uint256;
 
     event BidAccepted(
@@ -51,18 +51,18 @@ contract TwistedAuction {
     // round <> address of the highest bidder
     mapping(uint256 => address) public highestBidderFromRound;
 
-    ITwistedAccessControls public accessControls;
-    ITwistedTokenCreator public twistedTokenCreator;
-    TwistedAuctionFundSplitter public auctionFundSplitter;
+    ITwistedSisterAccessControls public accessControls;
+    ITwistedSisterTokenCreator public twistedTokenCreator;
+    TwistedSisterAuctionFundSplitter public auctionFundSplitter;
 
     modifier isWhitelisted() {
         require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
         _;
     }
 
-    constructor(ITwistedAccessControls _accessControls,
-                ITwistedTokenCreator _twistedTokenCreator,
-                TwistedAuctionFundSplitter _auctionFundSplitter,
+    constructor(ITwistedSisterAccessControls _accessControls,
+                ITwistedSisterTokenCreator _twistedTokenCreator,
+                TwistedSisterAuctionFundSplitter _auctionFundSplitter,
                 address payable _printingFund,
                 address payable _auctionOwner,
                 uint256 _auctionStartTime) public {
@@ -117,6 +117,7 @@ contract TwistedAuction {
     }
 
     function bid(uint256 _parameter) external payable {
+        require(_parameter > 0, "The parameter cannot be zero");
         _isBidValid(msg.value);
         _refundHighestBidder();
         highestBidFromRound[currentRound] = msg.value;
@@ -131,11 +132,13 @@ contract TwistedAuction {
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
 
-        // Issue the TWIST
+        // Handle no-bid scenario
         if (highestBidderFromRound[previousRound] == address(0)) {
             highestBidderFromRound[previousRound] = auctionOwner;
+            winningRoundParameter[previousRound] = 1; // 1 is the default and first param (1...64)
         }
 
+        // Issue the TWIST
         address winner = highestBidderFromRound[previousRound];
         uint256 winningRoundParam = winningRoundParameter[previousRound];
         uint256 tokenId = twistedTokenCreator.createTwisted(previousRound, winningRoundParam, _ipfsHash, winner);
@@ -145,6 +148,10 @@ contract TwistedAuction {
         _splitFundsFromHighestBid();
 
         emit RoundFinalised(previousRound, now, winningRoundParam, highestBidFromRound[previousRound], winner);
+    }
+
+    function updateAuctionStartTime(uint256 _auctionStartTime) external isWhitelisted {
+        auctionStartTime = _auctionStartTime;
     }
 
     function updateNumberOfRounds(uint256 _numOfRounds) external isWhitelisted {

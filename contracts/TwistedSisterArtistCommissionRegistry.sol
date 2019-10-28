@@ -2,13 +2,13 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/ITwistedArtistCommissionRegistry.sol";
-import "./interfaces/ITwistedAccessControls.sol";
+import "./interfaces/ITwistedSisterArtistCommissionRegistry.sol";
+import "./interfaces/ITwistedSisterAccessControls.sol";
 
-contract TwistedArtistCommissionRegistry is ITwistedArtistCommissionRegistry {
+contract TwistedSisterArtistCommissionRegistry is ITwistedSisterArtistCommissionRegistry {
     using SafeMath for uint256;
 
-    ITwistedAccessControls public accessControls;
+    ITwistedSisterAccessControls public accessControls;
 
     address payable[] public artists;
 
@@ -22,7 +22,7 @@ contract TwistedArtistCommissionRegistry is ITwistedArtistCommissionRegistry {
         _;
     }
 
-    constructor(ITwistedAccessControls _accessControls) public {
+    constructor(ITwistedSisterAccessControls _accessControls) public {
         accessControls = _accessControls;
     }
 

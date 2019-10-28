@@ -4,14 +4,14 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../libs/Strings.sol";
 import "../interfaces/erc721/CustomERC721Full.sol";
-import "../interfaces/ITwistedTokenCreator.sol";
-import "../interfaces/ITwistedAccessControls.sol";
+import "../interfaces/ITwistedSisterTokenCreator.sol";
+import "../interfaces/ITwistedSisterAccessControls.sol";
 
 
-contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
+contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
     using SafeMath for uint256;
 
-    ITwistedAccessControls public accessControls;
+    ITwistedSisterAccessControls public accessControls;
 
     string public tokenBaseURI = "";
 
@@ -27,6 +27,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
     }
 
     uint256 public tokenIdPointer = 0;
+    uint256 public transfersEnabledFrom;
 
     mapping(uint256 => Twist) internal twists;
 
@@ -40,9 +41,11 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
         _;
     }
 
-    constructor (string memory _tokenBaseURI, ITwistedAccessControls _accessControls) public CustomERC721Full("Twisted", "TWIST") {
+    constructor (string memory _tokenBaseURI, ITwistedSisterAccessControls _accessControls, uint256 _transfersEnabledFrom)
+    public CustomERC721Full("Twisted", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
+        transfersEnabledFrom = _transfersEnabledFrom;
     }
 
     function createTwisted(
@@ -87,6 +90,15 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedTokenCreator {
 
     function tokensOfOwner(address owner) external view returns (uint256[] memory) {
         return _tokensOfOwner(owner);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId) public {
+        require(now > transfersEnabledFrom, "Transfers are currently disabled");
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function updateTransfersEnabledFrom(uint256 _transfersEnabledFrom) external isWhitelisted {
+        transfersEnabledFrom = _transfersEnabledFrom;
     }
 
     function updateTokenBaseURI(string calldata _newBaseURI) external isWhitelisted {

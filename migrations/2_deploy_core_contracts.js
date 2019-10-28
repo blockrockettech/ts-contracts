@@ -1,63 +1,62 @@
-const { getAccountAddress } = require('@blockrocket/utils');
+const {getAccountAddress} = require('@blockrocket/utils');
 
-const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
-const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
+const MNEMONIC = process.env.TwistedSister_SISTERS_MNEMONIC || '';
+const INFURA_KEY = process.env.TwistedSister_SISTERS_INFURA_KEY || '';
 
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
-const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuctionMock = artifacts.require('TwistedAuctionMock');
-const TwistedAuction = artifacts.require('TwistedAuction');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
 
-function now(){ return Math.floor( Date.now() / 1000 ) }
+function now() { return Math.floor(Date.now() / 1000); }
+
 module.exports = async function (deployer, network, accounts) {
-    console.log("Deploying core contracts to network: " + network);
+    console.log('Deploying core contracts to network: ' + network);
 
     const creator = getAccountAddress(accounts, 0, network, MNEMONIC, INFURA_KEY);
     const auctionOwner = '0x7Edf95DEA126e5EF4Fc2FcFFc83C6Bbde82d5C54'; // no bid address
     const printingFund = '0xB2d3097580b5D1a5e352Ec9fC96566D792bc67d4';
     const baseIPFSURI = 'https://ipfs.infura.io/ipfs/';
 
-    await deployer.deploy(TwistedAccessControls, { from: creator });
-    const controls = await TwistedAccessControls.deployed();
+    await deployer.deploy(TwistedSisterAccessControls, {from: creator});
+    const controls = await TwistedSisterAccessControls.deployed();
     console.log('controls.address:', controls.address);
 
-    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, { from: creator });
+    // TODO: need to define the transfer from timestamp before launch as this will enable transfers from day 1
+    const lockedUntil = now() + 86400; // 1 day
+    console.log('lockedUntil', lockedUntil);
+
+    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, lockedUntil, {from: creator});
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);
 
-    await deployer.deploy(TwistedArtistCommissionRegistry, controls.address, { from: creator });
-    const registry = await TwistedArtistCommissionRegistry.deployed();
+    await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, {from: creator});
+    const registry = await TwistedSisterArtistCommissionRegistry.deployed();
     console.log('registry.address:', registry.address);
 
-    await deployer.deploy(TwistedAuctionFundSplitter, registry.address, { from: creator });
-    const fundSplitter = await TwistedAuctionFundSplitter.deployed();
+    await deployer.deploy(TwistedSisterAuctionFundSplitter, registry.address, {from: creator});
+    const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
-    if(network.toString() === 'live') {
-        // todo: change to nov 2, 8am for deployment
-        const auctionStartTime = now() - 5;
-        console.log('auctionStartTime', auctionStartTime);
+    // TODO: change to nov 2, 9am CET for deployment
+    const auctionStartTime = now() + 600; // start in 10 mins
+    console.log('auctionStartTime', auctionStartTime);
 
-        await deployer.deploy(TwistedAuction,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
-            {
-                from: creator
-            });
-        const auction = await TwistedAuction.deployed();
-        console.log('auction.address:', auction.address);
-    } else {
-        const auctionStartTime = now() + 600; // start in 10 mins
-        console.log('auctionStartTime', auctionStartTime);
+    // Deploy contract
+    await deployer.deploy(TwistedSisterAuction, controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime, {from: creator});
+    const auction = await TwistedSisterAuction.deployed();
+    console.log('auction.address:', auction.address);
 
-        // Deploy mock contract to test net
-        await deployer.deploy(TwistedAuctionMock,
-            controls.address, token.address, fundSplitter.address, printingFund, auctionOwner, auctionStartTime,
-            {
-                from: creator
-            });
-        const auction = await TwistedAuctionMock.deployed();
-        console.log('auction.address:', auction.address);
-    }
+    // whitelist the auction
+    await controls.addWhitelisted(auction.address);
+
+    // add TS admin
+    await controls.addWhitelisted('0x08BBc983b34aafd5A1AdE5FbF0bD2B2761e0b227');
+
+    // add AMG admin
+    await controls.addWhitelisted('0x401cBf2194D35D078c0BcdAe4BeA42275483ab5F');
+
+    // add Vince for minting support
+    await controls.addWhitelisted('0x12D062B19a2DF1920eb9FC28Bd6E9A7E936de4c2');
 };

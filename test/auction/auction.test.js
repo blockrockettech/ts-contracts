@@ -1,15 +1,14 @@
 const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
-const { ZERO_ADDRESS } = constants;
 
 const gasSpent = require('../gas-spent-helper');
 
 const {expect} = require('chai');
 
-const TwistedAccessControls = artifacts.require('TwistedAccessControls');
+const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
-const TwistedArtistCommissionRegistry = artifacts.require('TwistedArtistCommissionRegistry');
-const TwistedAuctionFundSplitter = artifacts.require('TwistedAuctionFundSplitter');
-const TwistedAuction = artifacts.require('TwistedAuctionMock');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
 
 contract('Twisted Auction Tests', function ([
                                       creator,
@@ -46,12 +45,12 @@ contract('Twisted Auction Tests', function ([
     function now(){ return Math.floor( Date.now() / 1000 ) }
 
     beforeEach(async function () {
-        this.accessControls = await TwistedAccessControls.new({ from: creator });
+        this.accessControls = await TwistedSisterAccessControls.new({ from: creator });
         expect(await this.accessControls.isWhitelisted(creator)).to.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, { from: creator });
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, { from: creator });
 
-        this.artistCommissionRegistry = await TwistedArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
+        this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         const {
@@ -61,9 +60,9 @@ contract('Twisted Auction Tests', function ([
         expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
         expect(_artists).to.be.deep.equal(commission.artists);
 
-        this.auctionFundSplitter = await TwistedAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+        this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
 
-        this.auction = await TwistedAuction.new(
+        this.auction = await TwistedSisterAuction.new(
             this.accessControls.address,
             this.token.address,
             this.auctionFundSplitter.address,
@@ -248,6 +247,7 @@ contract('Twisted Auction Tests', function ([
 
                 expect(await balance.current(this.auction.address)).to.be.bignumber.equal('0');
                 expect(await this.auction.highestBidderFromRound(2)).to.be.equal(auctionOwner);
+                expect(await this.auction.winningRoundParameter(2)).to.be.bignumber.equal(new BN(1));
                 expect(await this.token.ownerOf(1)).to.be.equal(bidder);
                 expect(await this.token.ownerOf(2)).to.be.equal(auctionOwner);
             });
@@ -263,7 +263,7 @@ contract('Twisted Auction Tests', function ([
         describe('on contract creation', function () {
             it('when start time is in the past', async function() {
                 await expectRevert(
-                    TwistedAuction.new(
+                    TwistedSisterAuction.new(
                         this.accessControls.address,
                         this.token.address,
                         this.auctionFundSplitter.address,
@@ -276,14 +276,6 @@ contract('Twisted Auction Tests', function ([
             });
         });
         describe('when bidding', function () {
-            it('if the last round has passed', async function () {
-                await this.auction.updateCurrentRound(22, { from: creator });
-                expect(await this.auction.currentRound()).to.be.bignumber.equal('22');
-                await expectRevert(
-                    this.auction.bid(4, { value: oneEth, from: bidder }),
-                    "Auction has ended"
-                );
-            });
             it('if bid is less than min bid', async function () {
                 await expectRevert(
                     this.auction.bid(7, { value: ether('0.005'), from: bidder }),
@@ -313,6 +305,12 @@ contract('Twisted Auction Tests', function ([
                     "This round's bidding window is not open"
                 );
             });
+            it('if a bid has been submitted for the zero parameter', async function() {
+                await expectRevert(
+                    this.auction.bid(0, { value: oneEth, from: bidder }),
+                    "The parameter cannot be zero"
+                );
+            });
         });
         describe('when issuing the TWIST and prepping the next round', function () {
             it('if the current round is still active', async function () {
@@ -321,14 +319,6 @@ contract('Twisted Auction Tests', function ([
                     "Current round still active"
                 );
             });
-            /*it('if no one has bid', async function () {
-                await this.auction.updateRoundLength(0, { from: creator });
-                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
-                await expectRevert(
-                    this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
-                    "No one has bid"
-                );
-            });*/
             it('if caller is not whitelisted', async function () {
                await expectRevert(
                    this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: random }),

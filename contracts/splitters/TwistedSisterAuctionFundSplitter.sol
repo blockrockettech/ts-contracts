@@ -2,16 +2,17 @@ pragma solidity ^0.5.0;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../interfaces/ITwistedArtistCommissionRegistry.sol";
+import "../interfaces/ITwistedSisterArtistCommissionRegistry.sol";
+import "../interfaces/ITwistedSisterArtistCommissionRegistry.sol";
 
-contract TwistedAuctionFundSplitter {
+contract TwistedSisterAuctionFundSplitter {
     using SafeMath for uint256;
 
     event FundSplitAndTransferred(uint256 _totalValue, address payable _recipient);
 
-    ITwistedArtistCommissionRegistry public artistCommissionRegistry;
+    ITwistedSisterArtistCommissionRegistry public artistCommissionRegistry;
 
-    constructor(ITwistedArtistCommissionRegistry _artistCommissionRegistry) public {
+    constructor(ITwistedSisterArtistCommissionRegistry _artistCommissionRegistry) public {
         artistCommissionRegistry = _artistCommissionRegistry;
     }
 
