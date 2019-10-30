@@ -263,7 +263,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             let timelockedToken;
             beforeEach(async function () {
                 lockedUntil = now() + 600; // locked for  10 mins
-                timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, {from: creator});
+                timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, this.auctionFundSplitter.address, {from: creator});
 
                 // create one token
                 await timelockedToken.createTwisted(0, 1, randIPFSHash, minter, {from: minter});

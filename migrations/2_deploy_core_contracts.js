@@ -38,7 +38,6 @@ module.exports = async function (deployer, network, accounts) {
     const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
-
     await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, lockedUntil, fundSplitter.address, {from: creator});
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);

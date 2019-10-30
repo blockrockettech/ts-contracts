@@ -48,7 +48,7 @@ contract('Twisted Auction Tests', function ([
         this.accessControls = await TwistedSisterAccessControls.new({ from: creator });
         expect(await this.accessControls.isWhitelisted(creator)).to.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, { from: creator });
+
 
         this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
@@ -61,6 +61,9 @@ contract('Twisted Auction Tests', function ([
         expect(_artists).to.be.deep.equal(commission.artists);
 
         this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+
+
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, this.auctionFundSplitter.address, { from: creator });
 
         this.auction = await TwistedSisterAuction.new(
             this.accessControls.address,
