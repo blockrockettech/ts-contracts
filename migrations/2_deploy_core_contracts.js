@@ -31,9 +31,6 @@ module.exports = async function (deployer, network, accounts) {
     const registry = await TwistedSisterArtistCommissionRegistry.deployed();
     console.log('registry.address:', registry.address);
 
-    // 50/50 split
-    await registry.setCommissionSplits([5000, 5000], [accounts[1], accounts[2]]);
-
     await deployer.deploy(TwistedSisterAuctionFundSplitter, registry.address, {from: creator});
     const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
@@ -63,17 +60,17 @@ module.exports = async function (deployer, network, accounts) {
     // add Vince for minting support
     await controls.addWhitelisted('0x12D062B19a2DF1920eb9FC28Bd6E9A7E936de4c2');
 
-    // Setup the commission splits
-    await registry.setCommissionSplits(
-        [1428, 1428, 1428, 1428, 1428, 1428, 1432],
-        [
-            0x96FA105210c5A7eEC1195A92D57B4eB67ab8D174,
-            0xef027d257d17E640732C6fda8dDD67FcD16ff35D,
-            0x52Ab9876d70F6ae0EC28e003C06d31A7698C115A,
-            0x78919687191432268B8862D454d9069B3549aD9e,
-            0x5F84E11e62Ec62e191e9C3BB0d401E293AbFDa72,
-            0x6f22f32523bEfb4585BD515649c1fc3C612f6725,
-            0xDDf31A63AC812525dd11D0D0dDF62F7AB7429E71
-        ]
-    );
+    // // Setup the commission splits
+    // await registry.setCommissionSplits(
+    //     [1428, 1428, 1428, 1428, 1428, 1428, 1432],
+    //     [
+    //         0x96FA105210c5A7eEC1195A92D57B4eB67ab8D174,
+    //         0xef027d257d17E640732C6fda8dDD67FcD16ff35D,
+    //         0x52Ab9876d70F6ae0EC28e003C06d31A7698C115A,
+    //         0x78919687191432268B8862D454d9069B3549aD9e,
+    //         0x5F84E11e62Ec62e191e9C3BB0d401E293AbFDa72,
+    //         0x6f22f32523bEfb4585BD515649c1fc3C612f6725,
+    //         0xDDf31A63AC812525dd11D0D0dDF62F7AB7429E71
+    //     ]
+    // );
 };
