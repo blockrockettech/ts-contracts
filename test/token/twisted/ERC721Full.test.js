@@ -8,12 +8,10 @@ const should = require('chai').should();
 
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
 
-contract('ERC721 Full Test Suite for TwistedToken', function ([
-                                                                  creator,
-                                                                  auction,
-                                                                  ...accounts
-                                                              ]) {
+contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction, ...accounts]) {
     const name = 'Twisted';
     const symbol = 'TWIST';
     const firstTokenId = new BN(1);
@@ -27,6 +25,20 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
 
     const minter = auction;
 
+    // Commission splits and artists
+    const commission = {
+        percentages: [
+            new BN(3300),
+            new BN(3300),
+            new BN(3400)
+        ],
+        artists: [
+            accounts[0],
+            accounts[1],
+            accounts[2]
+        ]
+    };
+
     const [
         owner,
         newOwner,
@@ -39,7 +51,19 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, {from: creator});
+        this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
+        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
+        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
+        const {
+            _percentages,
+            _artists
+        } = await this.artistCommissionRegistry.getCommissionSplits();
+        expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
+        expect(_artists).to.be.deep.equal(commission.artists);
+
+        this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, this.auctionFundSplitter.address, {from: creator});
     });
 
     describe('like a full ERC721', function () {
@@ -236,7 +260,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             function now() { return Math.floor(Date.now() / 1000); }
 
             let lockedUntil = -1;
-            let timelockedToken =
+            let timelockedToken;
             beforeEach(async function () {
                 lockedUntil = now() + 600; // locked for  10 mins
                 timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, {from: creator});
@@ -265,6 +289,12 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('reverts when trying to update the base token URI from an unauthorised address', async function () {
                 await this.token.updateTransfersEnabledFrom(6, {from: minter});
                 (await this.token.transfersEnabledFrom()).should.be.bignumber.equal('6');
+            });
+        });
+
+        describe('transferFrom secondary sales commission', function () {
+            it('should split any value', async function () {
+                await this.token.transferFrom(owner, newOwner, 1, {from: owner, value: 1000});
             });
         });
     });

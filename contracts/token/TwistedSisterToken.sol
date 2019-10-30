@@ -6,12 +6,14 @@ import "../libs/Strings.sol";
 import "../interfaces/erc721/CustomERC721Full.sol";
 import "../interfaces/ITwistedSisterTokenCreator.sol";
 import "../interfaces/ITwistedSisterAccessControls.sol";
+import "../splitters/TwistedSisterAuctionFundSplitter.sol";
 
 
 contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
     using SafeMath for uint256;
 
     ITwistedSisterAccessControls public accessControls;
+    TwistedSisterAuctionFundSplitter public auctionFundSplitter;
 
     string public tokenBaseURI = "";
 
@@ -41,11 +43,15 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         _;
     }
 
-    constructor (string memory _tokenBaseURI, ITwistedSisterAccessControls _accessControls, uint256 _transfersEnabledFrom)
-    public CustomERC721Full("Twisted", "TWIST") {
+    constructor (
+        string memory _tokenBaseURI,
+        ITwistedSisterAccessControls _accessControls,
+        uint256 _transfersEnabledFrom,
+        TwistedSisterAuctionFundSplitter _auctionFundSplitter) public CustomERC721Full("Twisted", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
         transfersEnabledFrom = _transfersEnabledFrom;
+        auctionFundSplitter = _auctionFundSplitter;
     }
 
     function createTwisted(
@@ -92,8 +98,19 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         return _tokensOfOwner(owner);
     }
 
-    function transferFrom(address from, address to, uint256 tokenId) public {
+    function transferFrom(address from, address to, uint256 tokenId) public payable {
         require(now > transfersEnabledFrom, "Transfers are currently disabled");
+
+        if (msg.value > 0) {
+            // how much to splitter?
+
+            (bool fromSuccess, ) = from.call.value(msg.value / 2)("");
+            require(fromSuccess, "Failed to transfer funds to the seller");
+
+            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(msg.value / 2)("");
+            require(fsSuccess, "Failed to send funds to the auction fund splitter");
+        }
+
         super.transferFrom(from, to, tokenId);
     }
 

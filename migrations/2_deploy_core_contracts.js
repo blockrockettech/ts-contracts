@@ -27,17 +27,21 @@ module.exports = async function (deployer, network, accounts) {
     const lockedUntil = now() + 86400; // 1 day
     console.log('lockedUntil', lockedUntil);
 
-    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, lockedUntil, {from: creator});
-    const token = await TwistedSisterToken.deployed();
-    console.log('token.address:', token.address);
-
     await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, {from: creator});
     const registry = await TwistedSisterArtistCommissionRegistry.deployed();
     console.log('registry.address:', registry.address);
 
+    // 50/50 split
+    await registry.setCommissionSplits([5000, 5000], [accounts[1], accounts[2]]);
+
     await deployer.deploy(TwistedSisterAuctionFundSplitter, registry.address, {from: creator});
     const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
+
+
+    await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, lockedUntil, fundSplitter.address, {from: creator});
+    const token = await TwistedSisterToken.deployed();
+    console.log('token.address:', token.address);
 
     // TODO: change to nov 2, 9am CET for deployment
     const auctionStartTime = now() + 600; // start in 10 mins
