@@ -9,9 +9,6 @@ const {expect} = require('chai');
 const {shouldBehaveLikeERC721} = require('./ERC721.behavior');
 const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 
-// const {expect} = require('chai');
-// const should = require('chai').should();
-
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
@@ -301,14 +298,14 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             });
         });
 
-        describe('transferFrom secondary sales commission', function () {
+        describe.only('transferFrom secondary sales commission', function () {
             it('should split any value', async function () {
                 const tokenId = 1;
 
-                const ownerBalance = await balance.tracker(owner);
+                const ownerBalance = await balance.tracker(owner); // 70% of value sent
                 const newOwnerBalance = await balance.tracker(newOwner); // 60% artist split
                 const anotherBalance = await balance.tracker(another); // 40% artist split
-                const toBalance = await balance.tracker(to); // 40% artist split
+                const toBalance = await balance.tracker(to);
 
                 console.log('owner', (await ownerBalance.get()).toString());
                 console.log('new owner', (await newOwnerBalance.get()).toString());
@@ -318,7 +315,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
                 const {receipt} = await this.token.approve(to, tokenId, {from: owner}); // approve the new owner to send the value and make the tx
                 await this.token.transferFrom(owner, to, tokenId, {from: to, value: oneEth});
 
-                const artistShare = oneEth.div(oneHundred).mul(new BN('30'));
+                const artistShare = oneEth.div(oneHundred).mul(new BN('10'));
                 expect((await newOwnerBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('60'))); // 60% of 30%
                 expect((await anotherBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('40'))); // 40% of 30%
                 expect(await ownerBalance.delta()).to.be.bignumber.equal((oneEth.div(oneHundred).mul(new BN('70'))).sub(gasSpent(receipt))); // 70% - minus approval gas

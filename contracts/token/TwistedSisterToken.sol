@@ -104,15 +104,29 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         super.transferFrom(from, to, tokenId);
 
         if (msg.value > 0) {
+            uint256 singleUnitOfValue = msg.value.div(100);
+
             // 20% holders
+            uint256 holderSplit = singleUnitOfValue.mul(20);
+            _sendValueToTokenHolders(holderSplit);
+
             // 10% artists
-            uint256 valueToSend = msg.value.div(100).mul(30);
-            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(valueToSend)("");
+            uint256 artistsSplit = singleUnitOfValue.mul(10);
+            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(artistsSplit)("");
             require(fsSuccess, "Failed to send funds to the auction fund splitter");
 
-            // 70% seller - send the rest
-            (bool fromSuccess, ) = from.call.value(msg.value - valueToSend)("");
+            // 70% seller
+            uint256 sellersSplit = singleUnitOfValue.mul(70);
+            (bool fromSuccess, ) = from.call.value(sellersSplit)("");
             require(fromSuccess, "Failed to send funds to the token owner");
+        }
+    }
+
+    function _sendValueToTokenHolders(uint256 _value) private {
+        uint256 individualTokenHolderSplit = _value.div(tokenIdPointer);
+        for(uint i = 1; i <= tokenIdPointer; i++) {
+            address payable owner = address(uint160(super.ownerOf(i)));
+            owner.call.value(individualTokenHolderSplit);
         }
     }
 
