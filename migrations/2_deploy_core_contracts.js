@@ -57,6 +57,9 @@ module.exports = async function (deployer, network, accounts) {
     // add AMG admin
     await controls.addWhitelisted('0x401cBf2194D35D078c0BcdAe4BeA42275483ab5F');
 
+    // add Blockrocket admin
+    await controls.addWhitelisted('0x818Ff73A5d881C27A945bE944973156C01141232');
+
     // add Vince for minting support
     const vinceAddress = '0x12D062B19a2DF1920eb9FC28Bd6E9A7E936de4c2';
     if (creator !== vinceAddress) {

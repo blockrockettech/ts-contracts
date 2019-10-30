@@ -6,14 +6,14 @@ import "../libs/Strings.sol";
 import "../interfaces/erc721/CustomERC721Full.sol";
 import "../interfaces/ITwistedSisterTokenCreator.sol";
 import "../interfaces/ITwistedSisterAccessControls.sol";
-import "../splitters/TwistedSisterAuctionFundSplitter.sol";
+import "../TwistedSisterArtistFundSplitter.sol";
 
 
 contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
     using SafeMath for uint256;
 
     ITwistedSisterAccessControls public accessControls;
-    TwistedSisterAuctionFundSplitter public auctionFundSplitter;
+    TwistedSisterArtistFundSplitter public artistFundSplitter;
 
     string public tokenBaseURI = "";
 
@@ -47,12 +47,12 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         string memory _tokenBaseURI,
         ITwistedSisterAccessControls _accessControls,
         uint256 _transfersEnabledFrom,
-        TwistedSisterAuctionFundSplitter _auctionFundSplitter
-    ) public CustomERC721Full("Twisted", "TWIST") {
+        TwistedSisterArtistFundSplitter _artistFundSplitter
+    ) public CustomERC721Full("twistedsister.io", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
         transfersEnabledFrom = _transfersEnabledFrom;
-        auctionFundSplitter = _auctionFundSplitter;
+        artistFundSplitter = _artistFundSplitter;
     }
 
     function createTwisted(
@@ -113,7 +113,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
 
             // 10% artists
             uint256 artistsSplit = singleUnitOfValue.mul(10);
-            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(artistsSplit)("");
+            (bool fsSuccess, ) = address(artistFundSplitter).call.value(artistsSplit)("");
             require(fsSuccess, "Failed to send funds to the auction fund splitter");
 
             // 70% seller

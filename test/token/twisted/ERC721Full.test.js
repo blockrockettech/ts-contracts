@@ -1,4 +1,3 @@
-
 const { BN, constants, expectEvent, expectRevert, ether, time, balance } = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
 
@@ -18,7 +17,7 @@ const oneEth = ether('1');
 const oneHundred = new BN('100');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction, ...accounts]) {
-    const name = 'Twisted';
+    const name = 'twistedsister.io';
     const symbol = 'TWIST';
     const firstTokenId = new BN(1);
     const secondTokenId = new BN(2);
@@ -50,8 +49,6 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             another,
         ]
     };
-
-
 
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new({from: creator});
