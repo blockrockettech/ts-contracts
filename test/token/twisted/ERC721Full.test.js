@@ -301,7 +301,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             });
         });
 
-        describe.only('transferFrom secondary sales commission', function () {
+        describe('transferFrom secondary sales commission', function () {
             it('should split any value', async function () {
                 const tokenId = 1;
 
