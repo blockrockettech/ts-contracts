@@ -47,7 +47,8 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         string memory _tokenBaseURI,
         ITwistedSisterAccessControls _accessControls,
         uint256 _transfersEnabledFrom,
-        TwistedSisterAuctionFundSplitter _auctionFundSplitter) public CustomERC721Full("Twisted", "TWIST") {
+        TwistedSisterAuctionFundSplitter _auctionFundSplitter
+    ) public CustomERC721Full("Twisted", "TWIST") {
         accessControls = _accessControls;
         tokenBaseURI = _tokenBaseURI;
         transfersEnabledFrom = _transfersEnabledFrom;
@@ -118,7 +119,7 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
             // 70% seller
             uint256 sellersSplit = singleUnitOfValue.mul(70);
             (bool fromSuccess, ) = from.call.value(sellersSplit)("");
-            require(fromSuccess, "Failed to send funds to the token owner");
+            require(fromSuccess, "Failed to send funds to the seller");
         }
     }
 
@@ -126,7 +127,8 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         uint256 individualTokenHolderSplit = _value.div(tokenIdPointer);
         for(uint i = 1; i <= tokenIdPointer; i++) {
             address payable owner = address(uint160(super.ownerOf(i)));
-            owner.call.value(individualTokenHolderSplit);
+            (bool ownerSuccess, ) = owner.call.value(individualTokenHolderSplit)("");
+            require(ownerSuccess, "Failed to send funds to a TWIST token owner");
         }
     }
 

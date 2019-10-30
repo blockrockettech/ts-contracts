@@ -36,6 +36,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
         newOwner,
         another,
         to,
+        toAnother,
     ] = accounts;
 
     // Commission splits and artists
@@ -54,6 +55,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
 
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new({from: creator});
+        await this.accessControls.addWhitelisted(minter, {from: creator});
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
@@ -74,7 +76,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
     describe('like a full ERC721', function () {
         beforeEach(async function () {
             await this.token.createTwisted(0, 1, randIPFSHash, owner, {from: minter});
-            await this.token.createTwisted(1, 2, randIPFSHash, owner, {from: minter});
+            await this.token.createTwisted(1, 2, randIPFSHash, toAnother, {from: minter});
         });
 
         describe('mint', function () {
@@ -195,9 +197,8 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
         describe('tokensOfOwner', function () {
             it('returns total tokens of owner', async function () {
                 const tokenIds = await this.token.tokensOfOwner(owner);
-                tokenIds.length.should.equal(2);
+                tokenIds.length.should.equal(1);
                 tokenIds[0].should.be.bignumber.equal(firstTokenId);
-                tokenIds[1].should.be.bignumber.equal(secondTokenId);
             });
         });
 
@@ -229,7 +230,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             describe('after transferring all tokens to another user', function () {
                 beforeEach(async function () {
                     await this.token.transferFrom(owner, another, firstTokenId, {from: owner});
-                    await this.token.transferFrom(owner, another, secondTokenId, {from: owner});
+                    await this.token.transferFrom(toAnother, another, secondTokenId, {from: toAnother});
                 });
 
                 it('returns correct token IDs for target', async function () {
@@ -297,27 +298,49 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             });
         });
 
-        describe.only('transferFrom secondary sales commission', function () {
+        describe('transferFrom secondary sales commission', function () {
             it('should split any value', async function () {
-                const tokenId = 1;
-
-                const ownerBalance = await balance.tracker(owner); // 70% of value sent
-                const newOwnerBalance = await balance.tracker(newOwner); // 60% artist split
-                const anotherBalance = await balance.tracker(another); // 40% artist split
+                // Balances before token transfer
+                const ownerBalance = await balance.tracker(owner);
+                const newOwnerBalance = await balance.tracker(newOwner);
+                const anotherBalance = await balance.tracker(another);
                 const toBalance = await balance.tracker(to);
+                const toAnotherBalance = await balance.tracker(toAnother);
 
-                console.log('owner', (await ownerBalance.get()).toString());
-                console.log('new owner', (await newOwnerBalance.get()).toString());
-                console.log('another owner', (await anotherBalance.get()).toString());
-                console.log('to', (await toBalance.get()).toString());
+                // approve the new owner to send the value and make the tx
+                const tokenOneId = 1;
+                ({receipt: this.receipt} = await this.token.approve(to, tokenOneId, {from: owner}));
+                const approvalGasSpent = gasSpent(this.receipt);
 
-                const {receipt} = await this.token.approve(to, tokenId, {from: owner}); // approve the new owner to send the value and make the tx
-                await this.token.transferFrom(owner, to, tokenId, {from: to, value: oneEth});
+                ({receipt: this.receipt} = await this.token.transferFrom(owner, to, tokenOneId, {from: to, value: oneEth}));
+                const transferGasSpent = gasSpent(this.receipt);
 
-                const artistShare = oneEth.div(oneHundred).mul(new BN('10'));
-                expect((await newOwnerBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('60'))); // 60% of 30%
-                expect((await anotherBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('40'))); // 40% of 30%
-                expect(await ownerBalance.delta()).to.be.bignumber.equal((oneEth.div(oneHundred).mul(new BN('70'))).sub(gasSpent(receipt))); // 70% - minus approval gas
+                // Assert artists correctly received 10% of the 1 ETH sent
+                const singleUnitOfValue = oneEth.div(oneHundred);
+                const artistShare = singleUnitOfValue.mul(new BN('10'));
+
+                expect((await newOwnerBalance.delta())).to.be.bignumber.equal(
+                    artistShare.div(oneHundred).mul(new BN('60')) // 60% of 10%
+                );
+
+                expect((await anotherBalance.delta())).to.be.bignumber.equal(
+                    artistShare.div(oneHundred).mul(new BN('40')) // 40% of 10%
+                );
+
+                // Assert twist token hodlers received the correct amount of ETH
+                expect(await this.token.tokenIdPointer()).to.be.bignumber.equal(new BN('2'));
+                const tokenHodlersShare = singleUnitOfValue.mul(new BN('20'));
+                const individualHodlerShare = tokenHodlersShare.div(new BN('2'));
+
+                expect(await toAnotherBalance.delta()).to.be.bignumber.equal(individualHodlerShare);
+
+                expect(await toBalance.delta()).to.be.bignumber.equal(
+                    oneEth.add(transferGasSpent).sub(individualHodlerShare).mul(new BN('-1'))
+                );
+
+                // Assert original owner should have received 70% - minus approval gas
+                const sellerShare = singleUnitOfValue.mul(new BN('70'));
+                expect(await ownerBalance.delta()).to.be.bignumber.equal(sellerShare.sub(approvalGasSpent));
             });
         });
     });
