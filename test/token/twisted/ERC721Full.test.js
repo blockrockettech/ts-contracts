@@ -54,7 +54,6 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
 
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new({from: creator});
-        await this.accessControls.addWhitelisted(minter, {from: creator});
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 

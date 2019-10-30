@@ -76,7 +76,6 @@ contract('Twisted Auction Tests', function ([
         expect(await this.auction.currentRound()).to.be.bignumber.equal('1');
         await this.auction.updateAuctionStartTime(now() - 50, { from: creator });
 
-        await this.accessControls.addWhitelisted(this.auction.address);
         expect(await this.accessControls.isWhitelisted(this.auction.address)).to.be.true;
     });
 
