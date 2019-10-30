@@ -1,15 +1,24 @@
-const {BN, constants, expectEvent, expectRevert, time} = require('openzeppelin-test-helpers');
+
+const { BN, constants, expectEvent, expectRevert, ether, time, balance } = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
+
+const gasSpent = require('../../gas-spent-helper');
+
+const {expect} = require('chai');
 
 const {shouldBehaveLikeERC721} = require('./ERC721.behavior');
 const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 
-const should = require('chai').should();
+// const {expect} = require('chai');
+// const should = require('chai').should();
 
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
 const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+
+const oneEth = ether('1');
+const oneHundred = new BN('100');
 
 contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction, ...accounts]) {
     const name = 'Twisted';
@@ -25,25 +34,26 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
 
     const minter = auction;
 
-    // Commission splits and artists
-    const commission = {
-        percentages: [
-            new BN(3300),
-            new BN(3300),
-            new BN(3400)
-        ],
-        artists: [
-            accounts[0],
-            accounts[1],
-            accounts[2]
-        ]
-    };
-
     const [
         owner,
         newOwner,
         another,
+        to,
     ] = accounts;
+
+    // Commission splits and artists
+    const commission = {
+        percentages: [
+            new BN(6000),
+            new BN(4000),
+        ],
+        artists: [
+            newOwner,
+            another,
+        ]
+    };
+
+
 
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new({from: creator});
@@ -52,7 +62,6 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
         this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
-        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         const {
             _percentages,
@@ -292,9 +301,27 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
             });
         });
 
-        describe('transferFrom secondary sales commission', function () {
+        describe.only('transferFrom secondary sales commission', function () {
             it('should split any value', async function () {
-                await this.token.transferFrom(owner, newOwner, 1, {from: owner, value: 1000});
+                const tokenId = 1;
+
+                const ownerBalance = await balance.tracker(owner);
+                const newOwnerBalance = await balance.tracker(newOwner); // 60% artist split
+                const anotherBalance = await balance.tracker(another); // 40% artist split
+                const toBalance = await balance.tracker(to); // 40% artist split
+
+                console.log('owner', (await ownerBalance.get()).toString());
+                console.log('new owner', (await newOwnerBalance.get()).toString());
+                console.log('another owner', (await anotherBalance.get()).toString());
+                console.log('to', (await toBalance.get()).toString());
+
+                const {receipt} = await this.token.approve(to, tokenId, {from: owner}); // approve the new owner to send the value and make the tx
+                await this.token.transferFrom(owner, to, tokenId, {from: to, value: oneEth});
+
+                const artistShare = oneEth.div(oneHundred).mul(new BN('30'));
+                expect((await newOwnerBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('60'))); // 60% of 30%
+                expect((await anotherBalance.delta())).to.be.bignumber.equal(artistShare.div(oneHundred).mul(new BN('40'))); // 40% of 30%
+                expect(await ownerBalance.delta()).to.be.bignumber.equal((oneEth.div(oneHundred).mul(new BN('70'))).sub(gasSpent(receipt))); // 70% - minus approval gas
             });
         });
     });

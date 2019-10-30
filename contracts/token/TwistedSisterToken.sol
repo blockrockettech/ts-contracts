@@ -98,20 +98,22 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         return _tokensOfOwner(owner);
     }
 
-    function transferFrom(address from, address to, uint256 tokenId) public payable {
+    function transferFrom(address payable from, address to, uint256 tokenId) public payable {
         require(now > transfersEnabledFrom, "Transfers are currently disabled");
 
-        if (msg.value > 0) {
-            // how much to splitter?
-
-            (bool fromSuccess, ) = from.call.value(msg.value / 2)("");
-            require(fromSuccess, "Failed to transfer funds to the seller");
-
-            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(msg.value / 2)("");
-            require(fsSuccess, "Failed to send funds to the auction fund splitter");
-        }
-
         super.transferFrom(from, to, tokenId);
+
+        if (msg.value > 0) {
+            // 20% holders
+            // 10% artists
+            uint256 valueToSend = msg.value.div(100).mul(30);
+            (bool fsSuccess, ) = address(auctionFundSplitter).call.value(valueToSend)("");
+            require(fsSuccess, "Failed to send funds to the auction fund splitter");
+
+            // 70% seller - send the rest
+            (bool fromSuccess, ) = from.call.value(msg.value - valueToSend)("");
+            require(fromSuccess, "Failed to send funds to the token owner");
+        }
     }
 
     function updateTransfersEnabledFrom(uint256 _transfersEnabledFrom) external isWhitelisted {

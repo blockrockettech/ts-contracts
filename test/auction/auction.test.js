@@ -52,7 +52,6 @@ contract('Twisted Auction Tests', function ([
 
         this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
         await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
-        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
         const {
             _percentages,
             _artists

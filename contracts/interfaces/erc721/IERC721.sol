@@ -32,7 +32,7 @@ contract IERC721 is IERC165 {
      * - If the caller is not `from`, it must be have been allowed to move this
      * NFT by either `approve` or `setApproveForAll`.
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public payable;
+    function safeTransferFrom(address payable from, address to, uint256 tokenId) public payable;
     /**
      * @dev Transfers a specific NFT (`tokenId`) from one account (`from`) to
      * another (`to`).
@@ -41,7 +41,7 @@ contract IERC721 is IERC165 {
      * - If the caller is not `from`, it must be approved to move this NFT by
      * either `approve` or `setApproveForAll`.
      */
-    function transferFrom(address from, address to, uint256 tokenId) public payable;
+    function transferFrom(address payable from, address to, uint256 tokenId) public payable;
     function approve(address to, uint256 tokenId) public;
     function getApproved(uint256 tokenId) public view returns (address operator);
 
@@ -49,5 +49,5 @@ contract IERC721 is IERC165 {
     function isApprovedForAll(address owner, address operator) public view returns (bool);
 
 
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public payable;
+    function safeTransferFrom(address payable from, address to, uint256 tokenId, bytes memory data) public payable;
 }
