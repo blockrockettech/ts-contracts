@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.12;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the

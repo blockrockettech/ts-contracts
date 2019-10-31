@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.12;
 
 contract ITwistedSisterArtistCommissionRegistry {
     function getCommissionSplits() external view returns (uint256[] memory _percentages, address payable[] memory _artists);

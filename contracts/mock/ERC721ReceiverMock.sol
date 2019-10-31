@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.12;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 

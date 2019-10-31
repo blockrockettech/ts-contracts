@@ -1,4 +1,4 @@
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.12;
 
 /**
  * @title ERC721 token receiver interface
