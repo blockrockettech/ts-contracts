@@ -11,7 +11,7 @@ const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
-const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFundSplitter');
 
 const oneEth = ether('1');
 const oneHundred = new BN('100');
@@ -65,7 +65,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
         expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
         expect(_artists).to.be.deep.equal(commission.artists);
 
-        this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+        this.auctionFundSplitter = await TwistedSisterArtistFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
 
         this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, this.auctionFundSplitter.address, {from: creator});
     });
@@ -188,6 +188,33 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction,
 
             it('reverts when querying metadata for non existent token id', async function () {
                 await expectRevert.unspecified(this.token.tokenURI(nonExistentTokenId));
+            });
+
+            it('reverts if not whitelisted when calling admin functions', async function() {
+                await expectRevert(
+                    this.token.createTwisted(1, 1, randIPFSHash, toAnother, {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateTransfersEnabledFrom(1, {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateTokenBaseURI('', {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateIpfsHash(1, '', {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateArtistFundSplitter(this.token.address, {from: another}),
+                    "Caller not whitelisted"
+                );
             });
         });
 

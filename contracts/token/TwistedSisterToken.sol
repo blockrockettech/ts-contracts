@@ -145,4 +145,8 @@ contract TwistedSisterToken is CustomERC721Full, ITwistedSisterTokenCreator {
         require(bytes(_newIpfsHash).length != 0, "New IPFS hash invalid");
         twists[_tokenId].ipfsHash = _newIpfsHash;
     }
+
+    function updateArtistFundSplitter(TwistedSisterArtistFundSplitter _artistFundSplitter) external isWhitelisted {
+        artistFundSplitter = _artistFundSplitter;
+    }
 }

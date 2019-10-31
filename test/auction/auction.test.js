@@ -7,7 +7,7 @@ const {expect} = require('chai');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
-const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFundSplitter');
 const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
 
 contract('Twisted Auction Tests', function ([
@@ -59,7 +59,7 @@ contract('Twisted Auction Tests', function ([
         expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
         expect(_artists).to.be.deep.equal(commission.artists);
 
-        this.auctionFundSplitter = await TwistedSisterAuctionFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+        this.auctionFundSplitter = await TwistedSisterArtistFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
 
 
         this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, this.auctionFundSplitter.address, { from: creator });
@@ -327,6 +327,22 @@ contract('Twisted Auction Tests', function ([
                    "Caller not whitelisted"
                );
             });
+            it('if issuing more than the total number of rounds', async function () {
+               await this.auction.updateNumberOfRounds(1);
+               expect(await this.auction.numOfRounds()).to.be.bignumber.equal('1');
+               expect(await this.token.totalSupply()).to.be.bignumber.equal('0');
+
+               await this.auction.updateRoundLength(0);
+               expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal('0');
+
+               await this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator });
+               expect(await this.token.totalSupply()).to.be.bignumber.equal('1');
+
+               await expectRevert(
+                   this.auction.issueTwistAndPrepNextRound(randIPFSHash, { from: creator }),
+                   "Auction has ended"
+               );
+            });
         });
         describe('when updating auction params', function () {
             it('if new number of rounds is smaller than the current round', async function () {
@@ -337,6 +353,27 @@ contract('Twisted Auction Tests', function ([
             });
             it('if new round length is longer than a day', async function () {
                await expectRevert.unspecified(this.auction.updateRoundLength(86500, { from: creator }));
+            });
+            it('if not whitelisted', async function() {
+                await expectRevert(
+                    this.auction.updateAuctionStartTime(5555, {from: random}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.auction.updateNumberOfRounds(5555, {from: random}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.auction.updateRoundLength(5555, {from: random}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.auction.updateArtistFundSplitter(this.auction.address, {from: random}),
+                    "Caller not whitelisted"
+                );
             });
         });
     });

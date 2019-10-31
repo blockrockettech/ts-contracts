@@ -128,6 +128,7 @@ contract TwistedSisterAuction {
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
         require(!_isWithinBiddingWindowForRound(), "Current round still active");
+        require(currentRound <= numOfRounds, "Auction has ended");
 
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
@@ -162,5 +163,9 @@ contract TwistedSisterAuction {
     function updateRoundLength(uint256 _roundLengthInSeconds) external isWhitelisted {
         require(_roundLengthInSeconds < secondsInADay);
         roundLengthInSeconds = _roundLengthInSeconds;
+    }
+
+    function updateArtistFundSplitter(TwistedSisterArtistFundSplitter _artistFundSplitter) external isWhitelisted {
+        artistFundSplitter = _artistFundSplitter;
     }
 }

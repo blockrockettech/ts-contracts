@@ -6,10 +6,8 @@ const INFURA_KEY = process.env.TwistedSister_SISTERS_INFURA_KEY || '';
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
-const TwistedSisterAuctionFundSplitter = artifacts.require('TwistedSisterAuctionFundSplitter');
+const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFundSplitter');
 const TwistedSisterAuction = artifacts.require('TwistedSisterAuction');
-
-function now() { return Math.floor(Date.now() / 1000); }
 
 module.exports = async function (deployer, network, accounts) {
     console.log('Deploying core contracts to network: ' + network);
@@ -23,25 +21,22 @@ module.exports = async function (deployer, network, accounts) {
     const controls = await TwistedSisterAccessControls.deployed();
     console.log('controls.address:', controls.address);
 
-    // TODO: need to define the transfer from timestamp before launch as this will enable transfers from day 1
-    let lockedUntil = now() + 86400; // 1 day
-    lockedUntil = 0; // todo: remove this temp override
+    let lockedUntil = 1579820400; // 24/01/2020 @ 11:00pm (UTC)
     console.log('lockedUntil', lockedUntil);
 
     await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, {from: creator});
     const registry = await TwistedSisterArtistCommissionRegistry.deployed();
     console.log('registry.address:', registry.address);
 
-    await deployer.deploy(TwistedSisterAuctionFundSplitter, registry.address, {from: creator});
-    const fundSplitter = await TwistedSisterAuctionFundSplitter.deployed();
+    await deployer.deploy(TwistedSisterArtistFundSplitter, registry.address, {from: creator});
+    const fundSplitter = await TwistedSisterArtistFundSplitter.deployed();
     console.log('fundSplitter.address', fundSplitter.address);
 
     await deployer.deploy(TwistedSisterToken, baseIPFSURI, controls.address, lockedUntil, fundSplitter.address, {from: creator});
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);
 
-    // TODO: change to nov 2, 9am CET for deployment
-    const auctionStartTime = now() + 600; // start in 10 mins
+    const auctionStartTime = 1572681600; // nov 2, 9am CET
     console.log('auctionStartTime', auctionStartTime);
 
     // Deploy contract
