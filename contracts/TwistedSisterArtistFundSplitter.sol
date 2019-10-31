@@ -1,11 +1,11 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../interfaces/ITwistedSisterArtistCommissionRegistry.sol";
-import "../interfaces/ITwistedSisterArtistCommissionRegistry.sol";
+import "./interfaces/ITwistedSisterArtistCommissionRegistry.sol";
+import "./interfaces/ITwistedSisterArtistCommissionRegistry.sol";
 
-contract TwistedSisterAuctionFundSplitter {
+contract TwistedSisterArtistFundSplitter {
     using SafeMath for uint256;
 
     event FundSplitAndTransferred(uint256 _totalValue, address payable _recipient);

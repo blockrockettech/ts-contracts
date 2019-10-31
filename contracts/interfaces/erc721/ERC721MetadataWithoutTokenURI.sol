@@ -1,8 +1,8 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Metadata.sol";
-import "@openzeppelin/contracts/introspection/ERC165.sol";
+import "./ERC721.sol";
+import "./IERC721Metadata.sol";
+import "./ERC165.sol";
 
 contract ERC721MetadataWithoutTokenURI is ERC165, ERC721, IERC721Metadata {
     // Token name

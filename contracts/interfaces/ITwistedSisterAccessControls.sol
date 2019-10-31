@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 
 contract ITwistedSisterAccessControls {
     function isWhitelisted(address account) public view returns (bool);

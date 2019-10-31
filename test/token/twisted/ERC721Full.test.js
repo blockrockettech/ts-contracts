@@ -1,20 +1,23 @@
-const {BN, constants, expectEvent, expectRevert, time} = require('openzeppelin-test-helpers');
+const { BN, constants, expectEvent, expectRevert, ether, time, balance } = require('openzeppelin-test-helpers');
 const {ZERO_ADDRESS} = constants;
+
+const gasSpent = require('../../gas-spent-helper');
+
+const {expect} = require('chai');
 
 const {shouldBehaveLikeERC721} = require('./ERC721.behavior');
 const {shouldSupportInterfaces} = require('../SupportsInterface.behavior');
 
-const should = require('chai').should();
-
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
+const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterArtistCommissionRegistry');
+const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFundSplitter');
 
-contract('ERC721 Full Test Suite for TwistedToken', function ([
-                                                                  creator,
-                                                                  auction,
-                                                                  ...accounts
-                                                              ]) {
-    const name = 'Twisted';
+const oneEth = ether('1');
+const oneHundred = new BN('100');
+
+contract('ERC721 Full Test Suite for TwistedToken', function ([creator, auction, ...accounts]) {
+    const name = 'twistedsister.io';
     const symbol = 'TWIST';
     const firstTokenId = new BN(1);
     const secondTokenId = new BN(2);
@@ -31,7 +34,21 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         owner,
         newOwner,
         another,
+        to,
+        toAnother,
     ] = accounts;
+
+    // Commission splits and artists
+    const commission = {
+        percentages: [
+            new BN(6000),
+            new BN(4000),
+        ],
+        artists: [
+            newOwner,
+            another,
+        ]
+    };
 
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new({from: creator});
@@ -39,13 +56,24 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
         (await this.accessControls.isWhitelisted(creator)).should.be.true;
         (await this.accessControls.isWhitelisted(minter)).should.be.true;
 
-        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, {from: creator});
+        this.artistCommissionRegistry = await TwistedSisterArtistCommissionRegistry.new(this.accessControls.address, { from: creator });
+        await this.artistCommissionRegistry.setCommissionSplits(commission.percentages, commission.artists, { from: creator });
+        const {
+            _percentages,
+            _artists
+        } = await this.artistCommissionRegistry.getCommissionSplits();
+        expect(JSON.stringify(_percentages)).to.be.deep.equal(JSON.stringify(commission.percentages));
+        expect(_artists).to.be.deep.equal(commission.artists);
+
+        this.auctionFundSplitter = await TwistedSisterArtistFundSplitter.new(this.artistCommissionRegistry.address, { from: creator });
+
+        this.token = await TwistedSisterToken.new(baseURI, this.accessControls.address, 0, this.auctionFundSplitter.address, {from: creator});
     });
 
     describe('like a full ERC721', function () {
         beforeEach(async function () {
             await this.token.createTwisted(0, 1, randIPFSHash, owner, {from: minter});
-            await this.token.createTwisted(1, 2, randIPFSHash, owner, {from: minter});
+            await this.token.createTwisted(1, 2, randIPFSHash, toAnother, {from: minter});
         });
 
         describe('mint', function () {
@@ -161,14 +189,40 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('reverts when querying metadata for non existent token id', async function () {
                 await expectRevert.unspecified(this.token.tokenURI(nonExistentTokenId));
             });
+
+            it('reverts if not whitelisted when calling admin functions', async function() {
+                await expectRevert(
+                    this.token.createTwisted(1, 1, randIPFSHash, toAnother, {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateTransfersEnabledFrom(1, {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateTokenBaseURI('', {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateIpfsHash(1, '', {from: another}),
+                    "Caller not whitelisted"
+                );
+
+                await expectRevert(
+                    this.token.updateArtistFundSplitter(this.token.address, {from: another}),
+                    "Caller not whitelisted"
+                );
+            });
         });
 
         describe('tokensOfOwner', function () {
             it('returns total tokens of owner', async function () {
                 const tokenIds = await this.token.tokensOfOwner(owner);
-                tokenIds.length.should.equal(2);
+                tokenIds.length.should.equal(1);
                 tokenIds[0].should.be.bignumber.equal(firstTokenId);
-                tokenIds[1].should.be.bignumber.equal(secondTokenId);
             });
         });
 
@@ -200,7 +254,7 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             describe('after transferring all tokens to another user', function () {
                 beforeEach(async function () {
                     await this.token.transferFrom(owner, another, firstTokenId, {from: owner});
-                    await this.token.transferFrom(owner, another, secondTokenId, {from: owner});
+                    await this.token.transferFrom(toAnother, another, secondTokenId, {from: toAnother});
                 });
 
                 it('returns correct token IDs for target', async function () {
@@ -236,10 +290,10 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             function now() { return Math.floor(Date.now() / 1000); }
 
             let lockedUntil = -1;
-            let timelockedToken =
+            let timelockedToken;
             beforeEach(async function () {
                 lockedUntil = now() + 600; // locked for  10 mins
-                timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, {from: creator});
+                timelockedToken = await TwistedSisterToken.new(baseURI, this.accessControls.address, lockedUntil, this.auctionFundSplitter.address, {from: creator});
 
                 // create one token
                 await timelockedToken.createTwisted(0, 1, randIPFSHash, minter, {from: minter});
@@ -265,6 +319,52 @@ contract('ERC721 Full Test Suite for TwistedToken', function ([
             it('reverts when trying to update the base token URI from an unauthorised address', async function () {
                 await this.token.updateTransfersEnabledFrom(6, {from: minter});
                 (await this.token.transfersEnabledFrom()).should.be.bignumber.equal('6');
+            });
+        });
+
+        describe('transferFrom secondary sales commission', function () {
+            it('should split any value', async function () {
+                // Balances before token transfer
+                const ownerBalance = await balance.tracker(owner);
+                const newOwnerBalance = await balance.tracker(newOwner);
+                const anotherBalance = await balance.tracker(another);
+                const toBalance = await balance.tracker(to);
+                const toAnotherBalance = await balance.tracker(toAnother);
+
+                // approve the new owner to send the value and make the tx
+                const tokenOneId = 1;
+                ({receipt: this.receipt} = await this.token.approve(to, tokenOneId, {from: owner}));
+                const approvalGasSpent = gasSpent(this.receipt);
+
+                ({receipt: this.receipt} = await this.token.transferFrom(owner, to, tokenOneId, {from: to, value: oneEth}));
+                const transferGasSpent = gasSpent(this.receipt);
+
+                // Assert artists correctly received 10% of the 1 ETH sent
+                const singleUnitOfValue = oneEth.div(oneHundred);
+                const artistShare = singleUnitOfValue.mul(new BN('10'));
+
+                expect((await newOwnerBalance.delta())).to.be.bignumber.equal(
+                    artistShare.div(oneHundred).mul(new BN('60')) // 60% of 10%
+                );
+
+                expect((await anotherBalance.delta())).to.be.bignumber.equal(
+                    artistShare.div(oneHundred).mul(new BN('40')) // 40% of 10%
+                );
+
+                // Assert twist token hodlers received the correct amount of ETH
+                expect(await this.token.tokenIdPointer()).to.be.bignumber.equal(new BN('2'));
+                const tokenHodlersShare = singleUnitOfValue.mul(new BN('20'));
+                const individualHodlerShare = tokenHodlersShare.div(new BN('2'));
+
+                expect(await toAnotherBalance.delta()).to.be.bignumber.equal(individualHodlerShare);
+
+                expect(await toBalance.delta()).to.be.bignumber.equal(
+                    oneEth.add(transferGasSpent).sub(individualHodlerShare).mul(new BN('-1'))
+                );
+
+                // Assert original owner should have received 70% - minus approval gas
+                const sellerShare = singleUnitOfValue.mul(new BN('70'));
+                expect(await ownerBalance.delta()).to.be.bignumber.equal(sellerShare.sub(approvalGasSpent));
             });
         });
     });

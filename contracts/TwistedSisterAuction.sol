@@ -1,10 +1,10 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/ITwistedSisterAccessControls.sol";
 import "./interfaces/ITwistedSisterTokenCreator.sol";
-import "./splitters/TwistedSisterAuctionFundSplitter.sol";
+import "./TwistedSisterArtistFundSplitter.sol";
 
 contract TwistedSisterAuction {
     using SafeMath for uint256;
@@ -53,7 +53,7 @@ contract TwistedSisterAuction {
 
     ITwistedSisterAccessControls public accessControls;
     ITwistedSisterTokenCreator public twistedTokenCreator;
-    TwistedSisterAuctionFundSplitter public auctionFundSplitter;
+    TwistedSisterArtistFundSplitter public artistFundSplitter;
 
     modifier isWhitelisted() {
         require(accessControls.isWhitelisted(msg.sender), "Caller not whitelisted");
@@ -62,14 +62,14 @@ contract TwistedSisterAuction {
 
     constructor(ITwistedSisterAccessControls _accessControls,
                 ITwistedSisterTokenCreator _twistedTokenCreator,
-                TwistedSisterAuctionFundSplitter _auctionFundSplitter,
+                TwistedSisterArtistFundSplitter _artistFundSplitter,
                 address payable _printingFund,
                 address payable _auctionOwner,
                 uint256 _auctionStartTime) public {
         require(now < _auctionStartTime, "Auction start time is not in the future");
         accessControls = _accessControls;
         twistedTokenCreator = _twistedTokenCreator;
-        auctionFundSplitter = _auctionFundSplitter;
+        artistFundSplitter = _artistFundSplitter;
         printingFund = _printingFund;
         auctionStartTime = _auctionStartTime;
         auctionOwner = _auctionOwner;
@@ -106,13 +106,13 @@ contract TwistedSisterAuction {
     }
 
     function _splitFundsFromHighestBid() internal {
-        // Split - 50% -> 3D Printing Fund, 50% -> TwistedAuctionFundSplitter
+        // Split - 50% -> 3D Printing Fund, 50% -> TwistedArtistFundSplitter
         uint256 valueToSend = highestBidFromRound[currentRound.sub(1)].div(2);
 
         (bool pfSuccess, ) = printingFund.call.value(valueToSend)("");
         require(pfSuccess, "Failed to transfer funds to the printing fund");
 
-        (bool fsSuccess, ) = address(auctionFundSplitter).call.value(valueToSend)("");
+        (bool fsSuccess, ) = address(artistFundSplitter).call.value(valueToSend)("");
         require(fsSuccess, "Failed to send funds to the auction fund splitter");
     }
 
@@ -128,6 +128,7 @@ contract TwistedSisterAuction {
 
     function issueTwistAndPrepNextRound(string calldata _ipfsHash) external isWhitelisted {
         require(!_isWithinBiddingWindowForRound(), "Current round still active");
+        require(currentRound <= numOfRounds, "Auction has ended");
 
         uint256 previousRound = currentRound;
         currentRound = currentRound.add(1);
@@ -162,5 +163,9 @@ contract TwistedSisterAuction {
     function updateRoundLength(uint256 _roundLengthInSeconds) external isWhitelisted {
         require(_roundLengthInSeconds < secondsInADay);
         roundLengthInSeconds = _roundLengthInSeconds;
+    }
+
+    function updateArtistFundSplitter(TwistedSisterArtistFundSplitter _artistFundSplitter) external isWhitelisted {
+        artistFundSplitter = _artistFundSplitter;
     }
 }
