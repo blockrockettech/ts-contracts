@@ -24,7 +24,8 @@ module.exports = async function (deployer, network, accounts) {
     console.log('controls.address:', controls.address);
 
     // TODO: need to define the transfer from timestamp before launch as this will enable transfers from day 1
-    const lockedUntil = now() + 86400; // 1 day
+    let lockedUntil = now() + 86400; // 1 day
+    lockedUntil = 0; // todo: remove this temp override
     console.log('lockedUntil', lockedUntil);
 
     await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, {from: creator});
@@ -48,25 +49,32 @@ module.exports = async function (deployer, network, accounts) {
     const auction = await TwistedSisterAuction.deployed();
     console.log('auction.address:', auction.address);
 
-    // whitelist the auction
+    console.log('\nwhitelisting the auction contract...');
     await controls.addWhitelisted(auction.address);
+    console.log('successful!');
 
-    // add TS admin
+    console.log('\nwhitelisting the TwistedSister admin...');
     await controls.addWhitelisted('0x08BBc983b34aafd5A1AdE5FbF0bD2B2761e0b227');
+    console.log('successful!');
 
-    // add AMG admin
+    console.log('\nwhitelisting the AMG admin...');
     await controls.addWhitelisted('0x401cBf2194D35D078c0BcdAe4BeA42275483ab5F');
+    console.log('successful!');
 
-    // add Blockrocket admin
+    console.log('\nwhitelisting the Blockrocket admin...');
     await controls.addWhitelisted('0x818Ff73A5d881C27A945bE944973156C01141232');
+    console.log('successful!');
 
     // add Vince for minting support
     const vinceAddress = '0x12D062B19a2DF1920eb9FC28Bd6E9A7E936de4c2';
     if (creator !== vinceAddress) {
+        console.log('\nwhitelisting the Vince admin...');
         await controls.addWhitelisted(vinceAddress);
+        console.log('successful!');
     }
 
     // Setup the commission splits
+    console.log('\nsetting the artists commission split in the registry...');
     await registry.setCommissionSplits(
         [1428, 1428, 1428, 1428, 1428, 1428, 1432],
         [
@@ -79,4 +87,5 @@ module.exports = async function (deployer, network, accounts) {
             '0xDDf31A63AC812525dd11D0D0dDF62F7AB7429E71'
         ]
     );
+    console.log('successful!');
 };
