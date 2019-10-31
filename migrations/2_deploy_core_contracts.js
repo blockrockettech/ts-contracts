@@ -21,7 +21,7 @@ module.exports = async function (deployer, network, accounts) {
     const controls = await TwistedSisterAccessControls.deployed();
     console.log('controls.address:', controls.address);
 
-    let lockedUntil = 1579820400; // 24/01/2020 @ 11:00pm (UTC)
+    let lockedUntil = 1579820400; // 23/01/2020 @ 11:00pm (UTC)
     console.log('lockedUntil', lockedUntil);
 
     await deployer.deploy(TwistedSisterArtistCommissionRegistry, controls.address, {from: creator});
