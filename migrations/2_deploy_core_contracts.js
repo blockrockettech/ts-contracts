@@ -36,7 +36,7 @@ module.exports = async function (deployer, network, accounts) {
     const token = await TwistedSisterToken.deployed();
     console.log('token.address:', token.address);
 
-    const auctionStartTime = 1572681600; // nov 2, 9am CET
+    const auctionStartTime = 1574344634; // nov 2, 9am CET
     console.log('auctionStartTime', auctionStartTime);
 
     // Deploy contract
