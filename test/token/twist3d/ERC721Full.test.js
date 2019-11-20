@@ -17,7 +17,7 @@ const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFu
 const oneEth = ether('1');
 const oneHundred = new BN('100');
 
-contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([creator, auction, ...accounts]) {
+contract('ERC721 Full Test Suite for TwistedSister3dToken', function ([creator, auction, ...accounts]) {
     const name = 'twistedsister.io';
     const symbol = 'TWIST3D';
     const firstTokenId = new BN(1);
