@@ -37,6 +37,8 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
         another,
         to,
         toAnother,
+        artist1,
+        artist2,
     ] = accounts;
 
     // Commission splits and artists
@@ -46,8 +48,8 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
             new BN(4000),
         ],
         artists: [
-            newOwner,
-            another,
+            artist1,
+            artist2,
         ]
     };
 
@@ -74,7 +76,7 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
 
     describe('like a full ERC721', function () {
         beforeEach(async function () {
-            await this.twist.createTwisted(0, 0, randIPFSHash, newOwner, {from: minter});
+            await this.twist.createTwisted(0, 0, randIPFSHash, toAnother, {from: minter});
             ({logs: this.logs} = await this.token.createTwistedSister3DToken(randIPFSHash, newOwner, {from: minter}));
         });
 
@@ -250,15 +252,15 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
             });
         });
 
-        describe.skip('transferFrom secondary sales commission', function () {
+        describe('transferFrom secondary sales commission', function () {
             it('should split any value', async function () {
                 const tokenOneId = 1;
                 await this.token.transferFrom(newOwner, owner, tokenOneId, { from: newOwner });
 
                 // Balances before token transfer
                 const ownerBalance = await balance.tracker(owner);
-                const newOwnerBalance = await balance.tracker(newOwner);
-                const anotherBalance = await balance.tracker(another);
+                const artist1Balance = await balance.tracker(artist1);
+                const artist2Balance = await balance.tracker(artist2);
                 const toBalance = await balance.tracker(to);
                 const toAnotherBalance = await balance.tracker(toAnother);
 
@@ -273,11 +275,11 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
                 const singleUnitOfValue = oneEth.div(oneHundred);
                 const artistShare = singleUnitOfValue.mul(new BN('10'));
 
-                expect((await newOwnerBalance.delta())).to.be.bignumber.equal(
+                expect((await artist1Balance.delta())).to.be.bignumber.equal(
                     artistShare.div(oneHundred).mul(new BN('60')) // 60% of 10%
                 );
 
-                expect((await anotherBalance.delta())).to.be.bignumber.equal(
+                expect((await artist2Balance.delta())).to.be.bignumber.equal(
                     artistShare.div(oneHundred).mul(new BN('40')) // 40% of 10%
                 );
 
@@ -289,7 +291,7 @@ contract.only('ERC721 Full Test Suite for TwistedSister3dToken', function ([crea
                 expect(await toAnotherBalance.delta()).to.be.bignumber.equal(individualHodlerShare);
 
                 expect(await toBalance.delta()).to.be.bignumber.equal(
-                    oneEth.add(transferGasSpent).sub(individualHodlerShare).mul(new BN('-1'))
+                    oneEth.add(transferGasSpent).mul(new BN('-1'))
                 );
 
                 // Assert original owner should have received 70% - minus approval gas
