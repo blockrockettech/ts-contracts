@@ -1,4 +1,4 @@
-const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
+const {BN, constants, expectEvent, expectRevert, ether, balance} = require('openzeppelin-test-helpers');
 
 const gasSpent = require('../gas-spent-helper');
 
@@ -12,14 +12,14 @@ const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFu
 const TwistedSister3DAuction = artifacts.require('TwistedSister3DAuction');
 
 contract.only('Twisted 3D Auction Tests', function ([
-                                                creator,
-                                                buyer,
-                                                random,
-                                                twistHolder1,
-                                                ...accounts
-                                            ]) {
-    const fromCreator = { from: creator };
-    const fromRandom = { from: random };
+                                                        creator,
+                                                        buyer,
+                                                        random,
+                                                        twistHolder1,
+                                                        ...accounts
+                                                    ]) {
+    const fromCreator = {from: creator};
+    const fromRandom = {from: random};
 
     // Commission splits and artists
     const commission = {
@@ -77,7 +77,7 @@ contract.only('Twisted 3D Auction Tests', function ([
         await this.twistToken.createTwisted(1, 0, randIPFSHash, twistHolder1);
     });
 
-    describe('happy path', function() {
+    describe('happy path', function () {
         it('can purchase the TWIST3D token and split funds', async function () {
             const balancesBefore = {
                 twistHolder1: await balance.tracker(twistHolder1),
@@ -110,17 +110,8 @@ contract.only('Twisted 3D Auction Tests', function ([
                     (await creatorBalance.delta()).should.be.bignumber.equal(oneEth.sub(gasSpent(context.receipt)));
                 }
 
-                // describe('when the contract is paused', function () {
-                //     it('sends the contract balance to the sender', async function () {
-                //         await this.auction.pause(fromCreator);
-                //         await withdrawAllFunds(this);
-                //     });
-                // });
-
-                describe('when the contract is not paused', function () {
-                    it('sends the contract balance to the sender', async function () {
-                        await withdrawAllFunds(this);
-                    });
+                it('sends the contract balance to the sender', async function () {
+                    await withdrawAllFunds(this);
                 });
             });
         });
@@ -135,6 +126,34 @@ contract.only('Twisted 3D Auction Tests', function ([
                     );
                 });
             });
+        });
+    });
+
+    describe('admin functions', function () {
+        // it('can update buyer', async function () {
+        //
+        // });
+
+        it('reverts when not whitelisted', async function () {
+            await expectRevert(
+                this.auction.updateBuyer(random, fromRandom),
+                "Caller not whitelisted"
+            );
+
+            await expectRevert(
+                this.auction.updateArtistFundSplitter(random, fromRandom),
+                "Caller not whitelisted"
+            );
+
+            await expectRevert(
+                this.auction.withdrawAllFunds(fromRandom),
+                "Caller not whitelisted"
+            );
+
+            await expectRevert(
+                this.auction.issue3DTwistToken(random, fromRandom),
+                "Caller not whitelisted"
+            );
         });
     });
 
