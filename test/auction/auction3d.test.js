@@ -130,9 +130,17 @@ contract.only('Twisted 3D Auction Tests', function ([
     });
 
     describe('admin functions', function () {
-        // it('can update buyer', async function () {
-        //
-        // });
+        it('can update buyer', async function () {
+            expect(await this.auction.buyer()).to.be.equal(constants.ZERO_ADDRESS);
+            await this.auction.updateBuyer(random, fromCreator);
+            expect(await this.auction.buyer()).to.be.equal(random);
+        });
+
+        it('can update artist fundsplitter', async function () {
+            expect(await this.auction.artistFundSplitter()).to.be.equal(this.artistFundSplitter.address);
+            await this.auction.updateArtistFundSplitter(random, fromCreator);
+            expect(await this.auction.artistFundSplitter()).to.be.equal(random);
+        });
 
         it('reverts when not whitelisted', async function () {
             await expectRevert(

@@ -15,8 +15,8 @@ contract TwistedSister3DAuction {
         uint256 _value
     );
 
-    uint256 highestPayment;
-    address buyer;
+    uint256 public highestPayment;
+    address public buyer;
 
     ITwistedSisterAccessControls public accessControls;
     ITwistedSister3DTokenCreator public twisted3DTokenCreator;
