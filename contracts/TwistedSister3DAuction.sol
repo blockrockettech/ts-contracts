@@ -7,7 +7,7 @@ import "./interfaces/ITwistedSister3DTokenCreator.sol";
 import "./interfaces/erc721/CustomERC721Full.sol";
 import "./TwistedSisterArtistFundSplitter.sol";
 
-contract TwistedSisterAuction {
+contract TwistedSister3DAuction {
     using SafeMath for uint256;
 
     event TWIST3DIssued(
