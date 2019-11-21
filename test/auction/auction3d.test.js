@@ -1,5 +1,7 @@
 const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
 
+const {expect} = require('chai');
+
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');
 const TwistedSister3DToken = artifacts.require('TwistedSister3DToken');
@@ -18,14 +20,12 @@ contract.only('Twisted 3D Auction Tests', function ([
     // Commission splits and artists
     const commission = {
         percentages: [
-            new BN(3300),
-            new BN(3300),
-            new BN(3400)
+            new BN(5000),
+            new BN(5000),
         ],
         artists: [
             accounts[0],
             accounts[1],
-            accounts[2]
         ]
     };
 
@@ -74,11 +74,35 @@ contract.only('Twisted 3D Auction Tests', function ([
     });
 
     describe('happy path', function() {
-        it('can purchase the TWIST3D token', async function () {
+        it('can purchase the TWIST3D token and split funds', async function () {
+            const balancesBefore = {
+                twistHolder1: await balance.tracker(twistHolder1),
+                artist1: await balance.tracker(commission.artists[0]),
+                artist2: await balance.tracker(commission.artists[1]),
+            };
+
             await sendValue(buyer, this.auction.address, oneEth);
             ({logs: this.logs} = await this.auction.issue3DTwistToken(randIPFSHash, fromCreator));
+            expectEvent.inLogs(this.logs, 'TWIST3DIssued', {
+                _buyer: buyer,
+                _value: oneEth
+            });
 
             expect(await this.twist3DToken.ownerOf(1)).to.be.equal(buyer);
+            await verifyFundSplitting(balancesBefore, oneEth, this.twistToken);
         });
     });
+
+    const verifyFundSplitting = async (balancesBefore, totalSplit, twistToken) => {
+        const singleUnitOfValue = totalSplit.div(new BN('100'));
+
+        const tokenHolderSplit = singleUnitOfValue.mul(new BN('90'));
+        const individualHolderSplit = tokenHolderSplit.div(await twistToken.totalSupply());
+        expect(await balancesBefore.twistHolder1.delta()).to.be.bignumber.equal(individualHolderSplit);
+
+        const artistSplit = singleUnitOfValue.mul(new BN('10'));
+        const individualArtistSplit = artistSplit.div(new BN(commission.artists.length.toString()));
+        expect(await balancesBefore.artist1.delta()).to.be.bignumber.equal(individualArtistSplit);
+        expect(await balancesBefore.artist2.delta()).to.be.bignumber.equal(individualArtistSplit);
+    };
 });

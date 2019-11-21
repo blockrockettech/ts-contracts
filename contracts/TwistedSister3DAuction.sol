@@ -12,7 +12,7 @@ contract TwistedSister3DAuction {
 
     event TWIST3DIssued(
         address indexed _buyer,
-        uint256 value
+        uint256 _value
     );
 
     uint256 highestPayment;
