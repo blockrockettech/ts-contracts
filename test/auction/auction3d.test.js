@@ -1,5 +1,7 @@
 const { BN, constants, expectEvent, expectRevert, ether, balance } = require('openzeppelin-test-helpers');
 
+const gasSpent = require('../gas-spent-helper');
+
 const {expect} = require('chai');
 
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
@@ -12,10 +14,12 @@ const TwistedSister3DAuction = artifacts.require('TwistedSister3DAuction');
 contract.only('Twisted 3D Auction Tests', function ([
                                                 creator,
                                                 buyer,
+                                                random,
                                                 twistHolder1,
                                                 ...accounts
                                             ]) {
     const fromCreator = { from: creator };
+    const fromRandom = { from: random };
 
     // Commission splits and artists
     const commission = {
@@ -90,6 +94,47 @@ contract.only('Twisted 3D Auction Tests', function ([
 
             expect(await this.twist3DToken.ownerOf(1)).to.be.equal(buyer);
             await verifyFundSplitting(balancesBefore, oneEth, this.twistToken);
+        });
+    });
+
+    describe('withdrawing funds', function () {
+        describe('when whitelisted', function () {
+            describe('when contract has a balance', function () {
+                beforeEach(async function () {
+                    await sendValue(creator, this.auction.address, oneEth);
+                });
+
+                async function withdrawAllFunds(context) {
+                    const creatorBalance = await balance.tracker(creator);
+                    ({receipt: context.receipt} = await context.auction.withdrawAllFunds(fromCreator));
+                    (await creatorBalance.delta()).should.be.bignumber.equal(oneEth.sub(gasSpent(context.receipt)));
+                }
+
+                // describe('when the contract is paused', function () {
+                //     it('sends the contract balance to the sender', async function () {
+                //         await this.auction.pause(fromCreator);
+                //         await withdrawAllFunds(this);
+                //     });
+                // });
+
+                describe('when the contract is not paused', function () {
+                    it('sends the contract balance to the sender', async function () {
+                        await withdrawAllFunds(this);
+                    });
+                });
+            });
+        });
+
+        describe('when not whitelisted', function () {
+            describe('when contract has a balance', function () {
+                it('reverts', async function () {
+                    await sendValue(creator, this.auction.address, oneEth);
+                    await expectRevert(
+                        this.auction.withdrawAllFunds(fromRandom),
+                        'Caller not whitelisted'
+                    );
+                });
+            });
         });
     });
 
