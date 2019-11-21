@@ -9,6 +9,8 @@ const TwistedSister3DAuction = artifacts.require('TwistedSister3DAuction');
 
 contract.only('Twisted 3D Auction Tests', function ([
                                                 creator,
+                                                buyer,
+                                                twistHolder1,
                                                 ...accounts
                                             ]) {
     const fromCreator = { from: creator };
@@ -36,6 +38,10 @@ contract.only('Twisted 3D Auction Tests', function ([
     const justOverOneEth = ether('1.01');
     const oneHalfEth = ether('1.5');
 
+    async function sendValue(from, to, value) {
+        await web3.eth.sendTransaction({from, to, value});
+    }
+
     beforeEach(async function () {
         this.accessControls = await TwistedSisterAccessControls.new(fromCreator);
         expect(await this.accessControls.isWhitelisted(creator)).to.be.true;
@@ -60,5 +66,19 @@ contract.only('Twisted 3D Auction Tests', function ([
             this.artistFundSplitter.address,
             this.twistToken.address
         );
+
+        await this.accessControls.addWhitelisted(this.auction.address);
+        expect(await this.accessControls.isWhitelisted(this.auction.address)).to.be.true;
+
+        await this.twistToken.createTwisted(1, 0, randIPFSHash, twistHolder1);
+    });
+
+    describe('happy path', function() {
+        it('can purchase the TWIST3D token', async function () {
+            await sendValue(buyer, this.auction.address, oneEth);
+            ({logs: this.logs} = await this.auction.issue3DTwistToken(randIPFSHash, fromCreator));
+
+            expect(await this.twist3DToken.ownerOf(1)).to.be.equal(buyer);
+        });
     });
 });
