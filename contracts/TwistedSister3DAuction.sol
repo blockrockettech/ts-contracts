@@ -10,28 +10,13 @@ import "./TwistedSisterArtistFundSplitter.sol";
 contract TwistedSisterAuction {
     using SafeMath for uint256;
 
-    event BidAccepted(
-        uint256 indexed _round,
-        uint256 _timeStamp,
-        uint256 _param,
-        uint256 _amount,
-        address indexed _bidder
+    event TWIST3DIssued(
+        address indexed _buyer,
+        uint256 value
     );
 
-    event BidderRefunded(
-        uint256 indexed _round,
-        uint256 _amount,
-        address indexed _bidder
-    );
-
-    uint256 public startTime;
-    uint256 public endTime;
-
-    // round <> highest bid value
-    mapping(uint256 => uint256) public highestBidFromRound;
-
-    // round <> address of the highest bidder
-    mapping(uint256 => address) public highestBidderFromRound;
+    uint256 highestPayment;
+    address buyer;
 
     ITwistedSisterAccessControls public accessControls;
     ITwistedSister3DTokenCreator public twisted3DTokenCreator;
@@ -46,45 +31,37 @@ contract TwistedSisterAuction {
     constructor(ITwistedSisterAccessControls _accessControls,
                 ITwistedSister3DTokenCreator _twisted3DTokenCreator,
                 TwistedSisterArtistFundSplitter _artistFundSplitter,
-                CustomERC721Full _twistedSisterToken,
-                uint256 _startTime,
-                uint256 _endTime) public {
+                CustomERC721Full _twistedSisterToken
+    ) public {
         accessControls = _accessControls;
         twisted3DTokenCreator = _twisted3DTokenCreator;
         artistFundSplitter = _artistFundSplitter;
         twistedSisterToken = _twistedSisterToken;
-        startTime = _startTime;
-        endTime = _endTime;
     }
 
-    function _isWithinBiddingWindowForRound() internal view returns (bool) {
-        return now >= startTime && now <= endTime;
-    }
-
-    function _isBidValid(uint256 _bidValue) internal view {
-        require(currentRound <= numOfRounds, "Auction has ended");
-        require(_bidValue >= minBid, "The bid didn't reach the minimum bid threshold");
-        require(_bidValue >= highestBidFromRound[currentRound].add(minBid), "The bid was not higher than the last");
-        require(_isWithinBiddingWindowForRound(), "This round's bidding window is not open");
-    }
-
-    function _refundHighestBidder() internal {
-        uint256 highestBidAmount = highestBidFromRound[currentRound];
-        if (highestBidAmount > 0) {
-            address highestBidder = highestBidderFromRound[currentRound];
-
-            // Clear out highest bidder as there is no longer one
-            delete highestBidderFromRound[currentRound];
-
-            (bool success, ) = highestBidder.call.value(highestBidAmount)("");
-            require(success, "Failed to refund the highest bidder");
-
-            emit BidderRefunded(currentRound, highestBidAmount, highestBidder);
+    function() external payable {
+        if (msg.value > highestPayment) {
+            highestPayment = msg.value;
+            buyer = msg.sender;
         }
     }
 
-    function _splitFundsFromHighestBid(uint256 _value) private {
-        uint256 singleUnitOfValue = _value.div(100);
+    function issue3DTwistToken(string calldata _ipfsHash) external isWhitelisted {
+        require(buyer != address(0));
+
+        // Issue the TWIST3D
+        uint256 tokenId = twisted3DTokenCreator.createTwistedSister3DToken(_ipfsHash, buyer);
+        require(tokenId == 1, "Error minting the TWIST3D token");
+
+        // Take the funds paid by the buyer and split it between the TWIST token holders and artist
+        uint256 valueSent = _splitFundsFromPayment();
+
+        emit TWIST3DIssued(buyer, valueSent);
+    }
+
+    function _splitFundsFromPayment() private returns(uint256) {
+        uint256 balance = address(this).balance;
+        uint256 singleUnitOfValue = balance.div(100);
 
         // Split - 90% -> 21 Twist owners, 10% -> TwistedArtistFundSplitter
         uint256 twistHoldersSplit = singleUnitOfValue.mul(90);
@@ -93,6 +70,8 @@ contract TwistedSisterAuction {
         uint256 artistSplit = singleUnitOfValue.mul(10);
         (bool fsSuccess, ) = address(artistFundSplitter).call.value(artistSplit)("");
         require(fsSuccess, "Failed to send funds to the artist fund splitter");
+
+        return balance;
     }
 
     function _sendFundsToTwistHolders(uint256 _value) private {
@@ -105,47 +84,14 @@ contract TwistedSisterAuction {
         }
     }
 
-    function bid(uint256 _parameter) external payable {
-        require(_parameter > 0, "The parameter cannot be zero");
-        _isBidValid(msg.value);
-        _refundHighestBidder();
-        highestBidFromRound[currentRound] = msg.value;
-        highestBidderFromRound[currentRound] = msg.sender;
-        emit BidAccepted(currentRound, now, winningRoundParameter[currentRound], highestBidFromRound[currentRound], highestBidderFromRound[currentRound]);
+    function withdrawAllFunds() external isWhitelisted {
+        /* solium-disable-next-line */
+        (bool success,) = msg.sender.call.value(address(this).balance)("");
+        require(success, "Failed to withdraw contract funds");
     }
 
-    function issueTwistAndPrepNextRound(string calldata _ipfsHash) external {
-        //todo: is this require required?
-        //require(!_isWithinBiddingWindowForRound(), "Current round still active");
-
-        //uint256 previousRound = currentRound;
-        //currentRound = currentRound.add(1);
-
-        // Handle no-bid scenario
-//        if (highestBidderFromRound[previousRound] == address(0)) {
-//            highestBidderFromRound[previousRound] = auctionOwner;
-//            winningRoundParameter[previousRound] = 1; // 1 is the default and first param (1...64)
-//        }
-
-        // Issue the TWIST3D
-        //address winner = highestBidderFromRound[previousRound];
-        //uint256 winningRoundParam = winningRoundParameter[previousRound];
-
-        uint256 tokenId = twisted3DTokenCreator.createTwistedSister3DToken(_ipfsHash, winner);
-        require(tokenId == 1, "Error minting the TWIST3D token");
-
-        // Take the proceedings from the highest bid and split funds accordingly
-        //_splitFundsFromHighestBid();
-
-        //emit RoundFinalised(previousRound, now, winningRoundParam, highestBidFromRound[previousRound], winner);
-    }
-
-    function updateAuctionStartTime(uint256 _startTime) external isWhitelisted {
-        startTime = _startTime;
-    }
-
-    function updateEndTime(uint256 _endTime) external isWhitelisted {
-        endTime = _endTime;
+    function updateBuyer(address _buyer) external isWhitelisted {
+        buyer = _buyer;
     }
 
     function updateArtistFundSplitter(TwistedSisterArtistFundSplitter _artistFundSplitter) external isWhitelisted {
