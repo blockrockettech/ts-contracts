@@ -74,6 +74,22 @@ contract('ERC721 Full Test Suite for TwistedSister3dToken', function ([creator, 
         this.token = await TwistedSister3DToken.new(baseURI, this.accessControls.address, this.auctionFundSplitter.address, this.twist.address, {from: creator});
     });
 
+    describe('Single token minting', function () {
+        it('happy path', async function() {
+            await this.token.createTwistedSister3DToken(randIPFSHash, newOwner, {from: minter});
+            (await this.token.totalSupply()).should.be.bignumber.equal('1');
+            (await this.token.ownerOf(1)).should.be.equal(newOwner);
+        });
+
+        it('reverts when minting more than 1 token', async function () {
+            await this.token.createTwistedSister3DToken(randIPFSHash, newOwner, {from: minter});
+            await expectRevert(
+                this.token.createTwistedSister3DToken(randIPFSHash, newOwner, {from: minter}),
+                'ERC721: token already minted'
+            );
+        });
+    });
+
     describe('like a full ERC721', function () {
         beforeEach(async function () {
             await this.twist.createTwisted(0, 0, randIPFSHash, toAnother, {from: minter});
