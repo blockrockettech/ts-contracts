@@ -11,7 +11,7 @@ const TwistedSisterArtistCommissionRegistry = artifacts.require('TwistedSisterAr
 const TwistedSisterArtistFundSplitter = artifacts.require('TwistedSisterArtistFundSplitter');
 const TwistedSister3DAuction = artifacts.require('TwistedSister3DAuction');
 
-contract.only('Twisted 3D Auction Tests', function ([
+contract('Twisted 3D Auction Tests', function ([
                                                         creator,
                                                         buyer,
                                                         random,
