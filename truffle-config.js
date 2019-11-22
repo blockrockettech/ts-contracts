@@ -39,12 +39,12 @@ module.exports = {
             gasPrice: 1000000000,    // <-- Use this low gas price
             network_id: '5777', // Match any network id
         },
-        coverage: {
+        soliditycoverage: {
             host: "localhost",
             network_id: "*",
             port: 8555,         // <-- If you change this, also set the port option in .solcover.js.
-            gas: 0xfffffffffff, // <-- Use this high gas value
-            gasPrice: 0x01      // <-- Use this low gas price
+            gas: 6721975, // <-- Use this high gas value
+            gasPrice: 1000000000      // <-- Use this low gas price
         },
         rinkeby: {
             provider: function () {
@@ -76,7 +76,8 @@ module.exports = {
         },
     },
     plugins: [
-        'truffle-plugin-verify'
+        'truffle-plugin-verify',
+        'solidity-coverage'
     ],
     verify: {
         preamble: "Author: Blockrocket.tech.\n"
