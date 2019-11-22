@@ -97,6 +97,40 @@ contract.only('Twisted 3D Auction Tests', function ([
         });
     });
 
+    describe('issuing 3D token', function () {
+        describe('when multiple payments have arrived', function () {
+            it('sends the token to the highest payment address', async function () {
+                const balancesBefore = {
+                    twistHolder1: await balance.tracker(twistHolder1),
+                    artist1: await balance.tracker(commission.artists[0]),
+                    artist2: await balance.tracker(commission.artists[1]),
+                };
+
+                await sendValue(buyer, this.auction.address, oneEth);
+                await sendValue(random, this.auction.address, halfEth);
+                ({logs: this.logs} = await this.auction.issue3DTwistToken(randIPFSHash, fromCreator));
+                expect(await this.twist3DToken.ownerOf(1)).to.be.equal(buyer);
+
+                await verifyFundSplitting(balancesBefore, oneHalfEth, this.twistToken);
+            });
+        });
+
+        describe('reverts', function () {
+            it('when trying to issue a token more than once', async function() {
+                await sendValue(buyer, this.auction.address, oneEth);
+                ({logs: this.logs} = await this.auction.issue3DTwistToken(randIPFSHash, fromCreator));
+                await expectRevert(
+                    this.auction.issue3DTwistToken(randIPFSHash, fromCreator),
+                    "ERC721: token already minted."
+                );
+            });
+
+            it('when trying to issue a token to the zero address', async function () {
+                await expectRevert.unspecified(this.auction.issue3DTwistToken(randIPFSHash, fromCreator));
+            });
+        });
+    });
+
     describe('withdrawing funds', function () {
         describe('when whitelisted', function () {
             describe('when contract has a balance', function () {

@@ -50,8 +50,7 @@ contract TwistedSister3DAuction {
         require(buyer != address(0));
 
         // Issue the TWIST3D
-        uint256 tokenId = twisted3DTokenCreator.createTwistedSister3DToken(_ipfsHash, buyer);
-        require(tokenId == 1, "Error minting the TWIST3D token");
+        twisted3DTokenCreator.createTwistedSister3DToken(_ipfsHash, buyer);
 
         // Take the funds paid by the buyer and split it between the TWIST token holders and artist
         uint256 valueSent = _splitFundsFromPayment();
