@@ -262,21 +262,6 @@ contract('Twisted Auction Tests', function ([
     });
 
     describe('should fail', function () {
-        describe('on contract creation', function () {
-            it('when start time is in the past', async function() {
-                await expectRevert(
-                    TwistedSisterAuction.new(
-                        this.accessControls.address,
-                        this.token.address,
-                        this.auctionFundSplitter.address,
-                        printingFund,
-                        auctionOwner,
-                        now() - 1
-                    ),
-                    "Auction start time is not in the future"
-                );
-            });
-        });
         describe('when bidding', function () {
             it('if bid is less than min bid', async function () {
                 await expectRevert(
@@ -299,7 +284,10 @@ contract('Twisted Auction Tests', function ([
                 );
             });
             it('if the bidding window is not open for round', async function () {
-                const newAuctionStartTime = new BN((now() + 50).toString());
+                await this.auction.updateRoundLength(0, { from: creator });
+                expect(await this.auction.roundLengthInSeconds()).to.be.bignumber.equal(new BN('0'));
+
+                const newAuctionStartTime = new BN((now() + 500).toString());
                 await this.auction.updateAuctionStartTime(newAuctionStartTime, { from: creator });
                 expect(await this.auction.auctionStartTime()).to.be.bignumber.equal(newAuctionStartTime);
                 await expectRevert(
