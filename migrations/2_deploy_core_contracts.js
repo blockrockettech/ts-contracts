@@ -1,7 +1,7 @@
 const {getAccountAddress} = require('@blockrocket/utils');
 
-const MNEMONIC = process.env.TwistedSister_SISTERS_MNEMONIC || '';
-const INFURA_KEY = process.env.TwistedSister_SISTERS_INFURA_KEY || '';
+const MNEMONIC = process.env.TWISTED_SISTERS_MNEMONIC || '';
+const INFURA_KEY = process.env.TWISTED_SISTERS_INFURA_KEY || '';
 
 const TwistedSisterAccessControls = artifacts.require('TwistedSisterAccessControls');
 const TwistedSisterToken = artifacts.require('TwistedSisterToken');

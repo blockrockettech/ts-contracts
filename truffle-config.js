@@ -70,7 +70,7 @@ module.exports = {
             },
             network_id: 1,
             gas: 8000000,         // default = 4712388
-            gasPrice: 8200000000, // default = 100 gwei = 100000000000
+            gasPrice: 7200000000, // default = 100 gwei = 100000000000
             timeoutBlocks: 200,   // # of blocks before a deployment times out  (minimum/default: 50)
             skipDryRun: true      // Skip dry run before migrations? (default: false for public nets )
         },

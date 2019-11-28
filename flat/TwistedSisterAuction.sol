@@ -246,7 +246,6 @@ contract TwistedSisterAuction {
                 address payable _printingFund,
                 address payable _auctionOwner,
                 uint256 _auctionStartTime) public {
-        require(now < _auctionStartTime, "Auction start time is not in the future");
         accessControls = _accessControls;
         twistedTokenCreator = _twistedTokenCreator;
         artistFundSplitter = _artistFundSplitter;
