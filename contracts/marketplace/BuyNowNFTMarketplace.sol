@@ -1,7 +1,7 @@
 pragma solidity ^0.5.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "../interfaces/erc721/CustomERC721Full.sol";
 
 contract BuyNowNFTMarketplace {
     using SafeMath for uint256;
@@ -21,13 +21,13 @@ contract BuyNowNFTMarketplace {
         _;
     }
 
-    IERC721 public nft;
+    CustomERC721Full public nft;
 
     // Manages all listings
     mapping(uint256 => uint256) internal tokenIdToPrice;
     uint256[] internal listedTokenIds;
 
-    constructor(IERC721 _nft) public {
+    constructor(CustomERC721Full _nft) public {
         nft = _nft;
     }
 
@@ -57,17 +57,10 @@ contract BuyNowNFTMarketplace {
         require(tokenIdToPrice[_tokenId] > 0, "Token not listed");
         require(msg.value >= tokenIdToPrice[_tokenId], "Value is below asking price");
 
-        address tokenSeller = nft.ownerOf(_tokenId);
-        nft.transferFrom(tokenSeller, msg.sender, _tokenId);
+        address payable tokenSeller = address(uint160(nft.ownerOf(_tokenId)));
+        nft.transferFrom.value(msg.value)(tokenSeller, msg.sender, _tokenId);
 
         delistToken(_tokenId);
-
-        // Refund any change
-        if(msg.value > tokenIdToPrice[_tokenId]) {
-            uint256 change = msg.value.sub(tokenIdToPrice[_tokenId]);
-            (bool changeSuccess, ) = msg.sender.call.value(change)("");
-            require(changeSuccess, "Failed to return change to the sender");
-        }
 
         emit Purchase(msg.sender, _tokenId, msg.value);
     }
