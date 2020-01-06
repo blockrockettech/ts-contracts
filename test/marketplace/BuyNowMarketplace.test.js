@@ -6,7 +6,9 @@ const BuyNowNFTMarketplace = artifacts.require('BuyNowNFTMarketplace');
 
 const {BN, expectEvent, expectRevert, balance} = require('openzeppelin-test-helpers');
 
-contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, wallet, newOwner, another, ...accounts]) => {
+const gasSpent = require('../gas-spent-helper');
+
+contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, buyer, artist1, artist2, ...accounts]) => {
 
     const firstTokenId = new BN(1);
     const secondTokenId = new BN(2);
@@ -22,8 +24,8 @@ contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, 
             new BN(4000),
         ],
         artists: [
-            newOwner,
-            another,
+            artist1,
+            artist2,
         ]
     };
 
@@ -69,7 +71,6 @@ contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, 
     });
 
     context('ensure public access correct', function () {
-
         it('returns nft', async function () {
             (await this.marketplace.nft()).should.be.equal(this.nft.address);
         });
@@ -106,6 +107,13 @@ contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, 
                 "You are not the owner of the NFT"
             );
         });
+
+        it('should revert for listings without approvals', async function() {
+            await expectRevert(
+                this.marketplace.listToken(thirdTokenId, 1, {from: tokenOwner}),
+                "NFT not approved to sell"
+            );
+        });
     });
 
     context('delist token', function () {
@@ -135,23 +143,39 @@ contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, 
             // give approval
             await this.nft.approve(this.marketplace.address, firstTokenId, {from: tokenOwner});
 
-            const preWalletBalance = await balance.current(wallet);
-            const preTokenOwnerBalance = await balance.current(tokenOwner);
+            const tokenOwnerBalance = await balance.tracker(tokenOwner);
+            const buyerBalance = await balance.tracker(buyer);
+            const artist1Balance = await balance.tracker(artist1);
+            const artist2Balance = await balance.tracker(artist2);
 
-            const {logs} = await this.marketplace.buyNow(firstTokenId, {from: anyone, value: listPrice});
+            const {logs, receipt} = await this.marketplace.buyNow(firstTokenId, {from: buyer, value: listPrice});
+            const txCost = gasSpent(receipt);
             expectEvent.inLogs(
                 logs,
                 `Purchase`,
-                {_buyer: anyone, _tokenId: firstTokenId, _priceInWei: listPrice}
+                {_buyer: buyer, _tokenId: firstTokenId, _priceInWei: listPrice}
             );
 
             // transferred to new home!
-            (await this.nft.ownerOf(firstTokenId)).should.be.equal(anyone);
+            (await this.nft.ownerOf(firstTokenId)).should.be.equal(buyer);
 
-            const postWalletBalance = await balance.current(wallet);
-            const postTokenOwnerBalance = await balance.current(tokenOwner);
+            // ensure fund splitting has taken place
+            const singleUnitOfValue = listPrice.div(new BN('100'));
 
+            const totalHolderSplit = singleUnitOfValue.mul(new BN('20'));
+            const individualHolderSplit = totalHolderSplit.div(await this.nft.tokenIdPointer());
 
+            const expectedBuyerDelta = new BN('0').sub(listPrice).sub(txCost).add(individualHolderSplit);
+            (await buyerBalance.delta()).should.be.bignumber.equal(expectedBuyerDelta);
+
+            const artistSplit = singleUnitOfValue.mul(new BN('10'));
+            const artist1Split = artistSplit.div(new BN('100')).mul(new BN('60'));
+            const artist2Split = artistSplit.div(new BN('100')).mul(new BN('40'));
+            (await artist1Balance.delta()).should.be.bignumber.equal(artist1Split);
+            (await artist2Balance.delta()).should.be.bignumber.equal(artist2Split);
+
+            const sellersSplit = singleUnitOfValue.mul(new BN('70')).add(individualHolderSplit.mul(new BN('3')));
+            (await tokenOwnerBalance.delta()).should.be.bignumber.equal(sellersSplit);
         });
 
         it('should revert if not listed', async function () {
