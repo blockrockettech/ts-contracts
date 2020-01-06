@@ -53,7 +53,7 @@ contract BuyNowNFTMarketplace {
         return true;
     }
 
-    function buyNow(uint256 _tokenId) external payable onlyWhenMarketplaceIsApproved(_tokenId) {
+    function buyNow(uint256 _tokenId) external payable {
         require(tokenIdToPrice[_tokenId] > 0, "Token not listed");
         require(msg.value >= tokenIdToPrice[_tokenId], "Value is below asking price");
 
