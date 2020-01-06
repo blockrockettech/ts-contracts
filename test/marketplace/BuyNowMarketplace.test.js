@@ -8,7 +8,7 @@ const {BN, expectEvent, expectRevert, balance} = require('openzeppelin-test-help
 
 const gasSpent = require('../gas-spent-helper');
 
-contract.only('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, buyer, artist1, artist2, ...accounts]) => {
+contract('BuyNowNFTMarketplace', ([_, creator, minter, tokenOwner, anyone, buyer, artist1, artist2, ...accounts]) => {
 
     const firstTokenId = new BN(1);
     const secondTokenId = new BN(2);
