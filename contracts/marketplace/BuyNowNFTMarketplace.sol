@@ -24,8 +24,7 @@ contract BuyNowNFTMarketplace {
     CustomERC721Full public nft;
 
     // Manages all listings
-    mapping(uint256 => uint256) internal tokenIdToPrice;
-    uint256[] internal listedTokenIds;
+    mapping(uint256 => uint256) public tokenIdToPrice;
 
     constructor(CustomERC721Full _nft) public {
         nft = _nft;
@@ -37,8 +36,6 @@ contract BuyNowNFTMarketplace {
         require(_priceInWei > 0, "Must have a positive price");
 
         tokenIdToPrice[_tokenId] = _priceInWei;
-
-        listedTokenIds.push(_tokenId);
 
         emit Listing(msg.sender, _tokenId, _priceInWei);
 
@@ -63,10 +60,6 @@ contract BuyNowNFTMarketplace {
         delistToken(_tokenId);
 
         emit Purchase(msg.sender, _tokenId, msg.value);
-    }
-
-    function listedTokens() external view returns (uint256[] memory) {
-        return listedTokenIds;
     }
 
     function listedTokenPrice(uint256 _tokenId) external view returns (uint256) {
