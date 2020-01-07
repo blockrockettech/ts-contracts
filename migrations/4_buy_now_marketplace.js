@@ -16,5 +16,5 @@ module.exports = async function (deployer, network, accounts) {
 
     await deployer.deploy(BuyNowNFTMarketplace, token.address, { from: creator });
     const marketplace = await BuyNowNFTMarketplace.deployed();
-    console.log('marketplace', marketplace);
+    console.log('marketplace', marketplace.address);
 };
